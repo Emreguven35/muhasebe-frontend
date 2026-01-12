@@ -304,8 +304,16 @@ function Receipts() {
                             {parseFloat(receipt.toplam_tutar || 0).toFixed(2)} ₺
                           </td>
                           <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace'}}>
-                            {parseFloat(receipt.kdv20 || 0).toFixed(2)}
-                          </td>
+  {receipt.kdv1 && parseFloat(receipt.kdv1) > 0 && (
+    <div>KDV %1: {parseFloat(receipt.kdv1).toFixed(2)}</div>
+  )}
+  {receipt.kdv10 && parseFloat(receipt.kdv10) > 0 && (
+    <div>KDV %10: {parseFloat(receipt.kdv10).toFixed(2)}</div>
+  )}
+  {receipt.kdv20 && parseFloat(receipt.kdv20) > 0 && (
+    <div>KDV %20: {parseFloat(receipt.kdv20).toFixed(2)}</div>
+  )}
+</td>
                           <td style={{...cellStyle, textAlign: 'center'}}>
                             <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                               <button
