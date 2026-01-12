@@ -65,10 +65,13 @@ function Dashboard() {
       }));
 
       const excelResponse = await axios.post(
-        'http://localhost:5001/api/ocr/export-excel',
-        { receipts: formattedReceipts },
-        { responseType: 'blob' }
-      );
+      `${API_URL}/api/ocr/export-excel`,  // ← VAR MI?
+      { receipts: formattedReceipts },
+      { 
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
 
       const url = window.URL.createObjectURL(new Blob([excelResponse.data]));
       const link = document.createElement('a');
