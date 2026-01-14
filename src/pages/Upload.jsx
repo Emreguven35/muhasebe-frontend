@@ -236,7 +236,15 @@ function Upload() {
             <p><strong>Fiş No:</strong> {result.fisNo || '-'}</p>
             <p><strong>Gider Cinsi:</strong> {result.giderCinsi || '-'}</p>
             <p><strong>Toplam:</strong> {result.toplamTutar || '0.00'} ₺</p>
-            <p><strong>KDV:</strong> {result.kdv20 || '0.00'} ₺</p>
+            {result.kdv1 && parseFloat(result.kdv1) > 0 && (
+  <p><strong>KDV %1:</strong> {result.kdv1} ₺</p>
+)}
+{result.kdv10 && parseFloat(result.kdv10) > 0 && (
+  <p><strong>KDV %10:</strong> {result.kdv10} ₺</p>
+)}
+{result.kdv20 && parseFloat(result.kdv20) > 0 && (
+  <p><strong>KDV %20:</strong> {result.kdv20} ₺</p>
+)}
           </div>
 
           {(!result.toplamTutar || parseFloat(result.toplamTutar) === 0) && (
