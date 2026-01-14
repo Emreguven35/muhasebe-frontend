@@ -234,7 +234,10 @@ function Receipts() {
                               style={inputStyle}
                             >
                               <option value="OTOPARK">OTOPARK</option>
+                              <option value="GİYİM">GİYİM</option>
                               <option value="MARKET">MARKET</option>
+                              <option value="GIDA">GIDA</option>           
+                              <option value="GİYİM">GİYİM</option>         
                               <option value="YİYECEK">YİYECEK</option>
                               <option value="YAKIT">YAKIT</option>
                               <option value="ULAŞIM">ULAŞIM</option>
