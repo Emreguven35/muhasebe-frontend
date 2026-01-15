@@ -71,7 +71,7 @@ const handleChange = (e) => {
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
           <h1 style={{ fontSize: '28px', marginBottom: '8px', color: 'var(--gray-900)' }}>
-            Muhasebe OCR
+            BELGE SOFT
           </h1>
           <p style={{ color: 'var(--gray-800)', fontSize: '14px' }}>
             Fiş okuma ve Excel export
