@@ -1,6 +1,6 @@
 {
-  "short_name": "Muhasebe OCR",
-  "name": "Muhasebe OCR - Fiş Okuyucu",
+  "short_name": "BELGE SOFT",
+  "name": "BELGE SOFT",
   "description": "Fiş fotoğraflarını yükleyin, OCR ile otomatik okutun, Excel'e aktarın",
   "icons": [
     {
@@ -9,13 +9,13 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "icon-192x192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "logo512.png",
+      "src": "icon-512x512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
