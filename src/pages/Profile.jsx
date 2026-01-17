@@ -1,66 +1,69 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function Profile() {
+  const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
 
-  useEffect(() => {
-  loadUserInfo();
-  
-  // PWA Install prompt'u yakala
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    setDeferredPrompt(e);
-    setShowInstallButton(true);
-  });
-}, []);
-
-  const loadUserInfo = useCallback(async () => {
-  try {
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`${API_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (response.data.success) {
-      setUserInfo(response.data.user);
-    }
-  } catch (error) {
-    console.error('Profil yükleme hatası:', error);
-    if (error.response?.status === 401) {
-      handleLogout();
-    }
-  } finally {
-    setLoading(false);
-  }
-}, []);
-const handleInstallApp = async () => {
-  if (!deferredPrompt) {
-    alert('Uygulama zaten yüklü veya tarayıcınız desteklemiyor');
-    return;
-  }
-
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  
-  if (outcome === 'accepted') {
-    alert('✅ Uygulama ana ekrana ekleniyor!');
-  }
-  
-  setDeferredPrompt(null);
-  setShowInstallButton(false);
-};
   const handleLogout = () => {
     if (window.confirm('Çıkış yapmak istediğinize emin misiniz?')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       navigate('/login');
     }
+  };
+
+  const loadUserInfo = useCallback(async () => {
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        setUserInfo(response.data.user);
+      }
+    } catch (error) {
+      console.error('Profil yükleme hatası:', error);
+      if (error.response?.status === 401) {
+        handleLogout();
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUserInfo();
+    
+    // PWA Install prompt'u yakala
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallButton(true);
+    });
+  }, [loadUserInfo]);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) {
+      alert('Uygulama zaten yüklü veya tarayıcınız desteklemiyor');
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      alert('✅ Uygulama ana ekrana ekleniyor!');
+    }
+    
+    setDeferredPrompt(null);
+    setShowInstallButton(false);
   };
 
   if (loading) {
@@ -124,34 +127,36 @@ const handleInstallApp = async () => {
           </div>
         </div>
       </div>
-{/* PWA Kurulum Butonu */}
-{showInstallButton && (
-  <div className="card" style={{ marginBottom: '16px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <span style={{ fontSize: '40px' }}>📱</span>
-      <div style={{ flex: 1 }}>
-        <h3 style={{ fontSize: '16px', marginBottom: '4px', color: 'white' }}>
-          Uygulamayı Yükle
-        </h3>
-        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', marginBottom: '12px' }}>
-          Ana ekrana ekle, daha hızlı erişim!
-        </p>
-        <button
-          onClick={handleInstallApp}
-          className="btn"
-          style={{ 
-            background: 'white',
-            color: 'var(--primary)',
-            padding: '8px 16px',
-            fontSize: '14px'
-          }}
-        >
-          📲 Yükle
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+
+      {/* PWA Kurulum Butonu */}
+      {showInstallButton && (
+        <div className="card" style={{ marginBottom: '16px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '40px' }}>📱</span>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ fontSize: '16px', marginBottom: '4px', color: 'white' }}>
+                Uygulamayı Yükle
+              </h3>
+              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', marginBottom: '12px' }}>
+                Ana ekrana ekle, daha hızlı erişim!
+              </p>
+              <button
+                onClick={handleInstallApp}
+                className="btn"
+                style={{ 
+                  background: 'white',
+                  color: 'var(--primary)',
+                  padding: '8px 16px',
+                  fontSize: '14px'
+                }}
+              >
+                📲 Yükle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Uygulama Bilgileri */}
       <div className="card" style={{ marginBottom: '16px' }}>
         <h3 style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--gray-900)' }}>

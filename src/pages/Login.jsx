@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
 function Login() {
-  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
@@ -12,44 +10,43 @@ function Login() {
   });
   const [loading, setLoading] = useState(false);
 
-const handleChange = (e) => {
-  setFormData({
-    ...formData,
-    [e.target.name]: e.target.value
-  });
-};
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-   console.log('🔍 Form gönderiliyor...', { isLogin, formData });
+    e.preventDefault();
+    setLoading(true);
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    console.log('🔍 Form gönderiliyor...', { isLogin, formData });
 
-  try {
-    const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-    const payload = isLogin 
-      ? { email: formData.email, password: formData.password }
-      : formData;
+    try {
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const payload = isLogin 
+        ? { email: formData.email, password: formData.password }
+        : formData;
       console.log('📤 İstek atılıyor:', endpoint, payload);
 
-    
-    const response = await axios.post(`${API_URL}${endpoint}`, payload);
-    console.log('✅ Cevap geldi:', response.data);
+      const response = await axios.post(`${API_URL}${endpoint}`, payload);
+      console.log('✅ Cevap geldi:', response.data);
 
-    if (response.data.success) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      if (response.data.success) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
 
-      alert(`✅ ${isLogin ? 'Giriş' : 'Kayıt'} başarılı!`);
-       window.location.href = '/';
+        alert(`✅ ${isLogin ? 'Giriş' : 'Kayıt'} başarılı!`);
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('❌ Hata:', error);
+      alert(`❌ Hata: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('❌ Hata:', error);
-    alert(`❌ Hata: ${error.response?.data?.message || error.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div style={{
