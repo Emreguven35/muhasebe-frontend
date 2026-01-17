@@ -36,6 +36,8 @@ function Receipts() {
       fis_no: receipt.fis_no || '',
       gider_cinsi: receipt.gider_cinsi || '',
       toplam_tutar: receipt.toplam_tutar || '',
+      kdv1: receipt.kdv1 || '',
+      kdv10: receipt.kdv10 || '',
       kdv20: receipt.kdv20 || ''
     });
   };
@@ -51,10 +53,10 @@ function Receipts() {
       const token = localStorage.getItem('token');
       
       await axios.put(
-      `${API_URL}/api/ocr/receipts/${receiptId}`, // ← DEĞİŞTİR
-      editForm,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+        `${API_URL}/api/ocr/receipts/${receiptId}`,
+        editForm,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       alert('✅ Fiş güncellendi!');
       setEditingId(null);
@@ -72,9 +74,9 @@ function Receipts() {
       const token = localStorage.getItem('token');
       
       await axios.delete(
-      `${API_URL}/api/ocr/receipts/${receiptId}`, // ← DEĞİŞTİR
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+        `${API_URL}/api/ocr/receipts/${receiptId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       alert('✅ Fiş silindi!');
       loadReceipts();
@@ -103,13 +105,13 @@ function Receipts() {
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001'; 
       const token = localStorage.getItem('token');
       const response = await axios.post(
-      `${API_URL}/api/ocr/export-excel`, // ← DEĞİŞTİR
-      { receipts: formattedReceipts },
-      { 
-        responseType: 'blob',
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    );
+        `${API_URL}/api/ocr/export-excel`,
+        { receipts: formattedReceipts },
+        { 
+          responseType: 'blob',
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -128,6 +130,8 @@ function Receipts() {
   const totals = {
     count: receipts.length,
     totalAmount: receipts.reduce((sum, r) => sum + (parseFloat(r.toplam_tutar) || 0), 0),
+    kdv1: receipts.reduce((sum, r) => sum + (parseFloat(r.kdv1) || 0), 0),
+    kdv10: receipts.reduce((sum, r) => sum + (parseFloat(r.kdv10) || 0), 0),
     kdv20: receipts.reduce((sum, r) => sum + (parseFloat(r.kdv20) || 0), 0)
   };
 
@@ -194,7 +198,7 @@ function Receipts() {
                       <th style={headerStyle}>Firma</th>
                       <th style={headerStyle}>Gider Cinsi</th>
                       <th style={headerStyle}>Toplam</th>
-                      <th style={headerStyle}>KDV %20</th>
+                      <th style={headerStyle}>KDV</th>
                       <th style={{...headerStyle, textAlign: 'center'}}>İşlemler</th>
                     </tr>
                   </thead>
@@ -237,7 +241,6 @@ function Receipts() {
                               <option value="GİYİM">GİYİM</option>
                               <option value="MARKET">MARKET</option>
                               <option value="GIDA">GIDA</option>           
-                              <option value="GİYİM">GİYİM</option>         
                               <option value="YİYECEK">YİYECEK</option>
                               <option value="YAKIT">YAKIT</option>
                               <option value="ULAŞIM">ULAŞIM</option>
@@ -254,13 +257,32 @@ function Receipts() {
                             />
                           </td>
                           <td style={cellStyle}>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={editForm.kdv20}
-                              onChange={(e) => setEditForm({...editForm, kdv20: e.target.value})}
-                              style={inputStyle}
-                            />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="%1"
+                                value={editForm.kdv1}
+                                onChange={(e) => setEditForm({...editForm, kdv1: e.target.value})}
+                                style={{...inputStyle, fontSize: '12px'}}
+                              />
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="%10"
+                                value={editForm.kdv10}
+                                onChange={(e) => setEditForm({...editForm, kdv10: e.target.value})}
+                                style={{...inputStyle, fontSize: '12px'}}
+                              />
+                              <input
+                                type="number"
+                                step="0.01"
+                                placeholder="%20"
+                                value={editForm.kdv20}
+                                onChange={(e) => setEditForm({...editForm, kdv20: e.target.value})}
+                                style={{...inputStyle, fontSize: '12px'}}
+                              />
+                            </div>
                           </td>
                           <td style={{...cellStyle, textAlign: 'center'}}>
                             <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
@@ -306,17 +328,28 @@ function Receipts() {
                           <td style={{...cellStyle, textAlign: 'right', fontWeight: '700', color: 'var(--primary)', fontFamily: 'monospace'}}>
                             {parseFloat(receipt.toplam_tutar || 0).toFixed(2)} ₺
                           </td>
-                          <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace'}}>
-  {receipt.kdv1 && parseFloat(receipt.kdv1) > 0 && (
-    <div>KDV %1: {parseFloat(receipt.kdv1).toFixed(2)}</div>
-  )}
-  {receipt.kdv10 && parseFloat(receipt.kdv10) > 0 && (
-    <div>KDV %10: {parseFloat(receipt.kdv10).toFixed(2)}</div>
-  )}
-  {receipt.kdv20 && parseFloat(receipt.kdv20) > 0 && (
-    <div>KDV %20: {parseFloat(receipt.kdv20).toFixed(2)}</div>
-  )}
-</td>
+                          <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px'}}>
+                            {receipt.kdv1 && parseFloat(receipt.kdv1) > 0 && (
+                              <div style={{ marginBottom: '2px' }}>
+                                <span style={{ fontWeight: '600' }}>%1:</span> {parseFloat(receipt.kdv1).toFixed(2)} ₺
+                              </div>
+                            )}
+                            {receipt.kdv10 && parseFloat(receipt.kdv10) > 0 && (
+                              <div style={{ marginBottom: '2px' }}>
+                                <span style={{ fontWeight: '600' }}>%10:</span> {parseFloat(receipt.kdv10).toFixed(2)} ₺
+                              </div>
+                            )}
+                            {receipt.kdv20 && parseFloat(receipt.kdv20) > 0 && (
+                              <div>
+                                <span style={{ fontWeight: '600' }}>%20:</span> {parseFloat(receipt.kdv20).toFixed(2)} ₺
+                              </div>
+                            )}
+                            {(!receipt.kdv1 || parseFloat(receipt.kdv1) === 0) && 
+                             (!receipt.kdv10 || parseFloat(receipt.kdv10) === 0) && 
+                             (!receipt.kdv20 || parseFloat(receipt.kdv20) === 0) && (
+                              <span style={{ color: 'var(--gray-400)' }}>-</span>
+                            )}
+                          </td>
                           <td style={{...cellStyle, textAlign: 'center'}}>
                             <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
                               <button
@@ -348,8 +381,10 @@ function Receipts() {
                       <td style={{...cellStyle, textAlign: 'right', fontSize: '16px', color: 'var(--success)', fontFamily: 'monospace'}}>
                         {totals.totalAmount.toFixed(2)} ₺
                       </td>
-                      <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', color: 'var(--primary)'}}>
-                        {totals.kdv20.toFixed(2)}
+                      <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: 'var(--primary)'}}>
+                        {totals.kdv1 > 0 && <div>%1: {totals.kdv1.toFixed(2)}</div>}
+                        {totals.kdv10 > 0 && <div>%10: {totals.kdv10.toFixed(2)}</div>}
+                        {totals.kdv20 > 0 && <div>%20: {totals.kdv20.toFixed(2)}</div>}
                       </td>
                       <td></td>
                     </tr>
@@ -446,6 +481,8 @@ const getGiderColor = (cinsi) => {
   const colors = {
     'OTOPARK': '#e3f2fd',
     'MARKET': '#f3e5f5',
+    'GIDA': '#fff9c4',
+    'GİYİM': '#f8bbd0',
     'YİYECEK': '#fff3e0',
     'YAKIT': '#ffebee',
     'ULAŞIM': '#e8f5e9'
