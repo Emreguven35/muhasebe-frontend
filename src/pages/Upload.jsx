@@ -7,7 +7,6 @@ function Upload() {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [uploadType, setUploadType] = useState('receipt'); // 'receipt' veya 'zrapor'
 
 
   const handleFileSelect = async (e) => {
