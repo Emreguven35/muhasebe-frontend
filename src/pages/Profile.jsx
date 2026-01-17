@@ -9,13 +9,13 @@ function Profile() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     if (window.confirm('Çıkış yapmak istediğinize emin misiniz?')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       navigate('/login');
     }
-  };
+  }, [navigate]);
 
   const loadUserInfo = useCallback(async () => {
     try {
@@ -36,17 +36,22 @@ function Profile() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [handleLogout]);
 
   useEffect(() => {
     loadUserInfo();
     
-    // PWA Install prompt'u yakala
-    window.addEventListener('beforeinstallprompt', (e) => {
+    const handleBeforeInstall = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setShowInstallButton(true);
-    });
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    };
   }, [loadUserInfo]);
 
   const handleInstallApp = async () => {
@@ -85,7 +90,6 @@ function Profile() {
         👤 Profil
       </h1>
 
-      {/* Kullanıcı Bilgileri */}
       <div className="card" style={{ marginBottom: '16px' }}>
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <div style={{
@@ -128,7 +132,6 @@ function Profile() {
         </div>
       </div>
 
-      {/* PWA Kurulum Butonu */}
       {showInstallButton && (
         <div className="card" style={{ marginBottom: '16px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -157,7 +160,6 @@ function Profile() {
         </div>
       )}
 
-      {/* Uygulama Bilgileri */}
       <div className="card" style={{ marginBottom: '16px' }}>
         <h3 style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--gray-900)' }}>
           📱 Uygulama
@@ -188,7 +190,6 @@ function Profile() {
         </div>
       </div>
 
-      {/* Hakkında */}
       <div className="card" style={{ marginBottom: '16px' }}>
         <h3 style={{ fontSize: '18px', marginBottom: '12px', color: 'var(--gray-900)' }}>
           ℹ️ Hakkında
@@ -217,7 +218,6 @@ function Profile() {
         </div>
       </div>
 
-      {/* Çıkış Butonu */}
       <button 
         className="btn btn-large"
         style={{ 
