@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function Profile() {
-  const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -20,27 +19,26 @@ function Profile() {
   });
 }, []);
 
-  const loadUserInfo = async () => {
-    try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+  const loadUserInfo = useCallback(async () => {
+  try {
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
-      if (response.data.success) {
-        setUserInfo(response.data.user);
-      }
-    } catch (error) {
-      console.error('Profil yükleme hatası:', error);
-      // Token geçersizse login'e yönlendir
-      if (error.response?.status === 401) {
-        handleLogout();
-      }
-    } finally {
-      setLoading(false);
+    if (response.data.success) {
+      setUserInfo(response.data.user);
     }
-  };
+  } catch (error) {
+    console.error('Profil yükleme hatası:', error);
+    if (error.response?.status === 401) {
+      handleLogout();
+    }
+  } finally {
+    setLoading(false);
+  }
+}, []);
 const handleInstallApp = async () => {
   if (!deferredPrompt) {
     alert('Uygulama zaten yüklü veya tarayıcınız desteklemiyor');
