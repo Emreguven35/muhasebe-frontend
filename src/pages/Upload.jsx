@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import imageCompression from 'browser-image-compression'; 
 
 function Upload() {
@@ -7,7 +6,7 @@ function Upload() {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
@@ -55,29 +54,36 @@ function Upload() {
     setResult(null);
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const user = JSON.parse(localStorage.getItem('user'));
       const formData = new FormData();
       formData.append('receipt', selectedFile);
-      const token = localStorage.getItem('token');
+      formData.append('userId', user.id);
 
-      const response = await axios.post(`${API_URL}/api/ocr/upload`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}` 
-        }
+      const response = await fetch(`${API_URL}/api/upload`, {
+        method: 'POST',
+        body: formData
       });
 
-      if (response.data.success) {
-        const parsedData = response.data.parsedData;
-        setResult(parsedData);
+      const data = await response.json();
+
+      if (data.success) {
+        const receipt = data.receipt;
+        setResult({
+          firmaUnvani: receipt.company_name,
+          tarih: receipt.date,
+          fisNo: receipt.receipt_number,
+          giderCinsi: receipt.category,
+          toplamTutar: receipt.total,
+          kdv: receipt.vat
+        });
         
-        const totalAmount = parseFloat(parsedData.toplamTutar || 0);
-        const hasRequiredFields = parsedData.firmaUnvani && parsedData.tarih;
+        const totalAmount = parseFloat(receipt.total || 0);
+        const hasRequiredFields = receipt.company_name && receipt.date;
         
-        if (totalAmount === 0 || !parsedData.toplamTutar) {
-          alert('⚠️ UYARI: Toplam tutar okunamadı!\n\nFiş kaydedildi ancak "Fişlerim" bölümünden manuel olarak düzenlemeniz gerekiyor.');
+        if (totalAmount === 0 || !receipt.total) {
+          alert('⚠️ UYARI: Toplam tutar okunamadı!\n\nFiş kaydedildi ancak "Dashboard" bölümünden manuel olarak kontrol edin.');
         } else if (!hasRequiredFields) {
-          alert('⚠️ UYARI: Bazı bilgiler eksik okunamadı!\n\nFiş kaydedildi, lütfen "Fişlerim" bölümünden kontrol edin.');
+          alert('⚠️ UYARI: Bazı bilgiler eksik okunamadı!\n\nFiş kaydedildi, lütfen "Dashboard" bölümünden kontrol edin.');
         } else {
           alert('✅ Fiş başarıyla yüklendi ve kaydedildi!');
         }
@@ -100,7 +106,7 @@ function Upload() {
 
   return (
     <div className="container" style={{ paddingTop: '20px', paddingBottom: '80px' }}>
-      <h1 style={{ fontSize: '28px', marginBottom: '24px', color: 'var(--gray-900)' }}>
+      <h1 style={{ fontSize: '28px', marginBottom: '24px', color: '#1f2937' }}>
         📸 Fiş Yükle
       </h1>
 
@@ -109,7 +115,7 @@ function Upload() {
           <input
             type="file"
             accept="image/*"
-            
+            capture="environment"
             onChange={handleFileSelect}
             style={{ display: 'none' }}
             id="fileInput"
@@ -123,19 +129,18 @@ function Upload() {
               alignItems: 'center',
               cursor: 'pointer',
               padding: '40px',
-              border: '2px dashed var(--gray-200)',
+              border: '2px dashed #e5e7eb',
               borderRadius: '12px'
             }}
           >
             <span style={{ fontSize: '64px', marginBottom: '16px' }}>📷</span>
-            <p style={{ fontSize: '18px', color: 'var(--gray-800)', marginBottom: '8px' }}>
+            <p style={{ fontSize: '18px', color: '#4b5563', marginBottom: '8px' }}>
               Fotoğraf Çek veya Seç
             </p>
-            <p style={{ fontSize: '14px', color: 'var(--gray-800)', marginBottom: '16px' }}>
+            <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
               Fişi net bir şekilde çekin
             </p>
 
-            {/* FOTOĞRAF ÇEKME İPUÇLARI */}
             <div style={{ 
               marginTop: '16px',
               padding: '16px',
@@ -192,19 +197,33 @@ function Upload() {
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
               onClick={handleUpload}
-              className="btn btn-success"
-              style={{ flex: 1 }}
+              style={{
+                flex: 1,
+                padding: '12px',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
             >
               ✅ Yükle ve Kaydet
             </button>
             
             <button
               onClick={handleReset}
-              className="btn"
               style={{ 
                 flex: 1,
-                background: 'var(--gray-200)',
-                color: 'var(--gray-800)'
+                padding: '12px',
+                background: '#e5e7eb',
+                color: '#4b5563',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
               }}
             >
               🔄 Yeniden Çek
@@ -216,10 +235,10 @@ function Upload() {
       {loading && (
         <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-          <p style={{ fontSize: '18px', color: 'var(--gray-800)' }}>
+          <p style={{ fontSize: '18px', color: '#4b5563' }}>
             OCR işleniyor...
           </p>
-          <p style={{ fontSize: '13px', color: 'var(--gray-800)', marginTop: '8px' }}>
+          <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>
             Fiş okunuyor ve kaydediliyor...
           </p>
         </div>
@@ -227,7 +246,7 @@ function Upload() {
 
       {result && (
         <div className="card">
-          <h3 style={{ marginBottom: '16px', color: 'var(--success)' }}>
+          <h3 style={{ marginBottom: '16px', color: '#10b981' }}>
             ✅ Fiş Kaydedildi!
           </h3>
           
@@ -235,17 +254,9 @@ function Upload() {
             <p><strong>Firma:</strong> {result.firmaUnvani || '-'}</p>
             <p><strong>Tarih:</strong> {result.tarih || '-'}</p>
             <p><strong>Fiş No:</strong> {result.fisNo || '-'}</p>
-            <p><strong>Gider Cinsi:</strong> {result.giderCinsi || '-'}</p>
+            <p><strong>Kategori:</strong> {result.giderCinsi || '-'}</p>
             <p><strong>Toplam:</strong> {result.toplamTutar || '0.00'} ₺</p>
-            {result.kdv1 && parseFloat(result.kdv1) > 0 && (
-  <p><strong>KDV %1:</strong> {result.kdv1} ₺</p>
-)}
-{result.kdv10 && parseFloat(result.kdv10) > 0 && (
-  <p><strong>KDV %10:</strong> {result.kdv10} ₺</p>
-)}
-{result.kdv20 && parseFloat(result.kdv20) > 0 && (
-  <p><strong>KDV %20:</strong> {result.kdv20} ₺</p>
-)}
+            <p><strong>KDV:</strong> {result.kdv || '0.00'} ₺</p>
           </div>
 
           {(!result.toplamTutar || parseFloat(result.toplamTutar) === 0) && (
@@ -257,14 +268,24 @@ function Upload() {
               fontSize: '13px',
               color: '#e65100'
             }}>
-              ⚠️ Bazı bilgiler eksik! "Fişlerim" bölümünden düzenleyebilirsiniz.
+              ⚠️ Bazı bilgiler eksik! "Dashboard" bölümünden düzenleyebilirsiniz.
             </div>
           )}
           
           <button
             onClick={handleReset}
-            className="btn btn-primary btn-large"
-            style={{ marginTop: '16px' }}
+            style={{
+              marginTop: '16px',
+              width: '100%',
+              padding: '14px',
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
           >
             ➕ Yeni Fiş Yükle
           </button>

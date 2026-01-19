@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
@@ -21,28 +22,34 @@ function Login() {
     e.preventDefault();
     setLoading(true);
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-    console.log('🔍 Form gönderiliyor...', { isLogin, formData });
 
     try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const endpoint = isLogin ? '/api/login' : '/api/register';
       const payload = isLogin 
         ? { email: formData.email, password: formData.password }
         : formData;
-      console.log('📤 İstek atılıyor:', endpoint, payload);
 
-      const response = await axios.post(`${API_URL}${endpoint}`, payload);
-      console.log('✅ Cevap geldi:', response.data);
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
 
-      if (response.data.success) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      const data = await response.json();
 
+      if (response.ok && data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
         alert(`✅ ${isLogin ? 'Giriş' : 'Kayıt'} başarılı!`);
-        window.location.href = '/';
+        navigate('/');
+      } else {
+        alert(`❌ Hata: ${data.error || 'Bir hata oluştu'}`);
       }
     } catch (error) {
       console.error('❌ Hata:', error);
-      alert(`❌ Hata: ${error.response?.data?.message || error.message}`);
+      alert(`❌ Hata: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -67,10 +74,10 @@ function Login() {
       }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-          <h1 style={{ fontSize: '28px', marginBottom: '8px', color: 'var(--gray-900)' }}>
+          <h1 style={{ fontSize: '28px', marginBottom: '8px', color: '#1f2937' }}>
             BELGE SOFT
           </h1>
-          <p style={{ color: 'var(--gray-800)', fontSize: '14px' }}>
+          <p style={{ color: '#4b5563', fontSize: '14px' }}>
             Fiş okuma ve Excel export
           </p>
         </div>
@@ -79,7 +86,7 @@ function Login() {
           display: 'flex',
           gap: '8px',
           marginBottom: '24px',
-          background: 'var(--gray-100)',
+          background: '#f3f4f6',
           padding: '4px',
           borderRadius: '12px'
         }}>
@@ -91,7 +98,7 @@ function Login() {
               border: 'none',
               borderRadius: '8px',
               background: isLogin ? 'white' : 'transparent',
-              color: isLogin ? 'var(--primary)' : 'var(--gray-800)',
+              color: isLogin ? '#3b82f6' : '#4b5563',
               fontWeight: '600',
               cursor: 'pointer',
               transition: 'all 0.3s',
@@ -108,7 +115,7 @@ function Login() {
               border: 'none',
               borderRadius: '8px',
               background: !isLogin ? 'white' : 'transparent',
-              color: !isLogin ? 'var(--primary)' : 'var(--gray-800)',
+              color: !isLogin ? '#3b82f6' : '#4b5563',
               fontWeight: '600',
               cursor: 'pointer',
               transition: 'all 0.3s',
@@ -122,7 +129,7 @@ function Login() {
         <form onSubmit={handleSubmit}>
           {!isLogin && (
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: 'var(--gray-900)' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
                 Ad Soyad
               </label>
               <input
@@ -135,20 +142,20 @@ function Login() {
                 style={{
                   width: '100%',
                   padding: '12px 16px',
-                  border: '2px solid var(--gray-200)',
+                  border: '2px solid #e5e7eb',
                   borderRadius: '8px',
                   fontSize: '16px',
                   outline: 'none',
                   transition: 'border 0.3s'
                 }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--gray-200)'}
+                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
               />
             </div>
           )}
 
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: 'var(--gray-900)' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
               Email
             </label>
             <input
@@ -161,19 +168,19 @@ function Login() {
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                border: '2px solid var(--gray-200)',
+                border: '2px solid #e5e7eb',
                 borderRadius: '8px',
                 fontSize: '16px',
                 outline: 'none',
                 transition: 'border 0.3s'
               }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--gray-200)'}
+              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
             />
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: 'var(--gray-900)' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
               Şifre
             </label>
             <input
@@ -186,22 +193,38 @@ function Login() {
               style={{
                 width: '100%',
                 padding: '12px 16px',
-                border: '2px solid var(--gray-200)',
+                border: '2px solid #e5e7eb',
                 borderRadius: '8px',
                 fontSize: '16px',
                 outline: 'none',
                 transition: 'border 0.3s'
               }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
-              onBlur={(e) => e.target.style.borderColor = 'var(--gray-200)'}
+              onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="btn btn-primary"
-            style={{ width: '100%', fontSize: '16px', padding: '14px' }}
+            style={{
+              width: '100%',
+              fontSize: '16px',
+              padding: '14px',
+              background: loading ? '#9ca3af' : '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'background 0.3s'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) e.target.style.background = '#2563eb';
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) e.target.style.background = '#3b82f6';
+            }}
           >
             {loading ? '⏳ Yükleniyor...' : (isLogin ? '🔐 Giriş Yap' : '✨ Kayıt Ol')}
           </button>

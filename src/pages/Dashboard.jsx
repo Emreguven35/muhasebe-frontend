@@ -1,87 +1,145 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 function Dashboard() {
   const navigate = useNavigate();
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+  
+  const [user, setUser] = useState(null);
+  const [activeTab, setActiveTab] = useState('receipts'); // 'receipts' veya 'zreports'
+  const [receipts, setReceipts] = useState([]);
+  const [zReports, setZReports] = useState([]);
   const [stats, setStats] = useState({
-    totalReceipts: 0,
-    totalAmount: 0,
-    totalKdv: 0
+    total_receipts: 0,
+    total_amount: 0,
+    total_vat: 0,
+    category_count: 0,
+    categories: []
   });
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStats();
-  }, []);
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      fetchReceipts(parsedUser.id);
+      fetchZReports(parsedUser.id);
+      fetchStats(parsedUser.id);
+    } else {
+      navigate('/login');
+    }
+  }, [navigate]);
 
-  const loadStats = async () => {
+  const fetchReceipts = async (userId) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/ocr/receipts`, {
-  headers: { Authorization: `Bearer ${token}` }
-});
-      if (response.data.success) {
-        const receipts = response.data.receipts;
-        const totalAmount = receipts.reduce((sum, r) => sum + (parseFloat(r.toplam_tutar) || 0), 0);
-        const totalKdv = receipts.reduce((sum, r) => sum + (parseFloat(r.kdv20) || 0), 0);
-        
-        setStats({
-          totalReceipts: receipts.length,
-          totalAmount: totalAmount,
-          totalKdv: totalKdv
-        });
-      }
+      const response = await fetch(`${API_URL}/api/receipts?userId=${userId}`);
+      const data = await response.json();
+      setReceipts(data);
     } catch (error) {
-      console.error('İstatistik yükleme hatası:', error);
+      console.error('Fişler yüklenirken hata:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchZReports = async (userId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/z-reports?userId=${userId}`);
+      const data = await response.json();
+      setZReports(data);
+    } catch (error) {
+      console.error('Z Raporları yüklenirken hata:', error);
+    }
+  };
+
+  const fetchStats = async (userId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/dashboard-stats?userId=${userId}`);
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('İstatistikler yüklenirken hata:', error);
+    }
+  };
+
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('receipt', file);
+    formData.append('userId', user.id);
+
+    try {
+      const endpoint = activeTab === 'zreports' 
+        ? `${API_URL}/api/upload-z-report`
+        : `${API_URL}/api/upload`;
+        
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(activeTab === 'zreports' ? 'Z Raporu başarıyla yüklendi!' : 'Fiş başarıyla yüklendi!');
+        if (activeTab === 'zreports') {
+          fetchZReports(user.id);
+        } else {
+          fetchReceipts(user.id);
+          fetchStats(user.id);
+        }
+      } else {
+        alert('Yükleme başarısız: ' + (data.error || 'Bilinmeyen hata'));
+      }
+    } catch (error) {
+      console.error('Upload hatası:', error);
+      alert('Yükleme başarısız!');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Bu fişi silmek istediğinizden emin misiniz?')) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/receipts/${id}?userId=${user.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        fetchReceipts(user.id);
+        fetchStats(user.id);
+      }
+    } catch (error) {
+      console.error('Silme hatası:', error);
+      alert('Fiş silinemedi!');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
   const exportToExcel = async () => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const token = localStorage.getItem('token');
-       const response = await axios.get(`${API_URL}/api/ocr/receipts`, {
-      headers: { Authorization: `Bearer ${token}` }  // ← EKLE
-    });
-      
-      if (!response.data.success || response.data.receipts.length === 0) {
+      if (receipts.length === 0) {
         alert('Excel\'e aktarılacak fiş bulunamadı!');
         return;
       }
 
-      const formattedReceipts = response.data.receipts.map(r => ({
-        firmaUnvani: r.firma_unvani,
-        tarih: r.tarih,
-        fisNo: r.fis_no,
-        giderCinsi: r.gider_cinsi,
-        toplamTutar: r.toplam_tutar,
-        kdv1: r.kdv1,
-        kdv10: r.kdv10,
-        kdv20: r.kdv20
-      }));
-
-      const excelResponse = await axios.post(
-      `${API_URL}/api/ocr/export-excel`,  // ← VAR MI?
-      { receipts: formattedReceipts },
-      { 
-        responseType: 'blob',
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    );
-
-      const url = window.URL.createObjectURL(new Blob([excelResponse.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'harcamalar.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      alert('✅ Excel başarıyla indirildi!');
+      // Excel export kodu buraya eklenecek
+      alert('Excel export özelliği yakında eklenecek!');
     } catch (error) {
       alert('❌ Excel indirme hatası: ' + error.message);
     }
@@ -89,68 +147,237 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <div className="container" style={{ paddingTop: '20px', textAlign: 'center' }}>
-        <p style={{ marginTop: '40px' }}>Yükleniyor...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container" style={{ paddingTop: '20px', paddingBottom: '80px' }}>
-      <h1 style={{ fontSize: '28px', marginBottom: '24px', color: 'var(--gray-900)' }}>
-        👋 Hoş Geldiniz!
-      </h1>
-
-      <div className="grid grid-2">
-        <div className="card" style={{ textAlign: 'center' }}>
-          <h3 style={{ fontSize: '32px', color: 'var(--primary)', marginBottom: '8px' }}>
-            {stats.totalReceipts}
-          </h3>
-          <p style={{ color: 'var(--gray-800)' }}>Toplam Fiş</p>
-        </div>
-
-        <div className="card" style={{ textAlign: 'center' }}>
-          <h3 style={{ fontSize: '32px', color: 'var(--success)', marginBottom: '8px' }}>
-            {stats.totalAmount.toFixed(2)} ₺
-          </h3>
-          <p style={{ color: 'var(--gray-800)' }}>Toplam Tutar</p>
-        </div>
-
-        <div className="card" style={{ textAlign: 'center' }}>
-          <h3 style={{ fontSize: '32px', color: 'var(--primary)', marginBottom: '8px' }}>
-            {stats.totalKdv.toFixed(2)} ₺
-          </h3>
-          <p style={{ color: 'var(--gray-800)' }}>Toplam KDV</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Muhasebe Fiş Takip
+            </h1>
+            <div className="flex items-center gap-4">
+              <span className="text-gray-600">Merhaba, {user?.name}</span>
+              <button
+                onClick={handleLogout}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+              >
+                Çıkış
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style={{ marginTop: '32px' }}>
-        <h2 style={{ fontSize: '20px', marginBottom: '16px', color: 'var(--gray-900)' }}>
-          Hızlı İşlemler
-        </h2>
-        
-        <button 
-          className="btn btn-primary btn-large" 
-          style={{ marginBottom: '12px' }}
-          onClick={() => navigate('/upload')}
-        >
-          📸 Fiş Yükle
-        </button>
-        
-        {stats.totalReceipts > 0 && (
-          <button 
-            className="btn btn-success btn-large"
-            onClick={exportToExcel}
-          >
-            📥 Excel İndir ({stats.totalReceipts} Fiş)
-          </button>
-        )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* İstatistikler */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-500 mb-1">Toplam Fiş</div>
+            <div className="text-3xl font-bold text-blue-600">
+              {stats.total_receipts || 0}
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-500 mb-1">Toplam Tutar</div>
+            <div className="text-3xl font-bold text-green-600">
+              ₺{parseFloat(stats.total_amount || 0).toFixed(2)}
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-500 mb-1">Toplam KDV</div>
+            <div className="text-3xl font-bold text-purple-600">
+              ₺{parseFloat(stats.total_vat || 0).toFixed(2)}
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-500 mb-1">Kategori Sayısı</div>
+            <div className="text-3xl font-bold text-orange-600">
+              {stats.category_count || 0}
+            </div>
+          </div>
+        </div>
 
-        {stats.totalReceipts === 0 && (
-          <div className="card" style={{ textAlign: 'center', padding: '20px', marginTop: '20px' }}>
-            <p style={{ color: 'var(--gray-800)' }}>
-              Henüz fiş yüklemediniz. Başlamak için yukarıdaki butona tıklayın! 👆
-            </p>
+        {/* Tab Başlıkları */}
+        <div className="flex gap-4 mb-6 border-b bg-white rounded-t-lg px-4">
+          <button
+            onClick={() => setActiveTab('receipts')}
+            className={`pb-3 px-4 font-medium transition-colors ${
+              activeTab === 'receipts'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Fişler ({receipts.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('zreports')}
+            className={`pb-3 px-4 font-medium transition-colors ${
+              activeTab === 'zreports'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Z Raporları ({zReports.length})
+          </button>
+        </div>
+
+        {/* Upload Butonu */}
+        <div className="mb-6 flex gap-4">
+          <label className="bg-blue-500 text-white px-6 py-3 rounded-lg cursor-pointer hover:bg-blue-600 inline-block">
+            {uploading ? 'Yükleniyor...' : `${activeTab === 'zreports' ? 'Z Raporu' : 'Fiş'} Yükle`}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleUpload}
+              disabled={uploading}
+              className="hidden"
+            />
+          </label>
+          
+          {activeTab === 'receipts' && receipts.length > 0 && (
+            <button
+              onClick={exportToExcel}
+              className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600"
+            >
+              📥 Excel İndir ({receipts.length} Fiş)
+            </button>
+          )}
+        </div>
+
+        {/* Tab İçeriği */}
+        {activeTab === 'receipts' ? (
+          // FİŞLER TAB
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {receipts.length === 0 ? (
+              <div className="col-span-full bg-white rounded-lg shadow p-8 text-center">
+                <p className="text-gray-500">Henüz fiş yüklemediniz. Yukarıdaki butonu kullanarak fiş yükleyebilirsiniz.</p>
+              </div>
+            ) : (
+              receipts.map((receipt) => (
+                <div key={receipt.id} className="bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="font-semibold text-lg text-gray-900">
+                        {receipt.company_name || 'Firma Adı Yok'}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {receipt.date ? new Date(receipt.date).toLocaleDateString('tr-TR') : 'Tarih Yok'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(receipt.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+
+                  {receipt.category && (
+                    <div className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mb-2">
+                      {receipt.category}
+                    </div>
+                  )}
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Toplam:</span>
+                      <span className="font-semibold">₺{parseFloat(receipt.total || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">KDV:</span>
+                      <span className="text-purple-600">₺{parseFloat(receipt.vat || 0).toFixed(2)}</span>
+                    </div>
+                    {receipt.payment_method && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Ödeme:</span>
+                        <span>{receipt.payment_method}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {receipt.image_path && (
+                    <img
+                      src={`${API_URL}/${receipt.image_path}`}
+                      alt="Fiş"
+                      className="w-full h-40 object-cover rounded mt-3 cursor-pointer"
+                      onClick={() => window.open(`${API_URL}/${receipt.image_path}`, '_blank')}
+                    />
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          // Z RAPORLARI TAB
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {zReports.length === 0 ? (
+              <div className="col-span-full bg-white rounded-lg shadow p-8 text-center">
+                <p className="text-gray-500">Henüz Z Raporu yüklemediniz. Yukarıdaki butonu kullanarak Z Raporu yükleyebilirsiniz.</p>
+              </div>
+            ) : (
+              zReports.map((report) => (
+                <div key={report.id} className="bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <div className="font-semibold text-lg text-gray-900">Z Raporu</div>
+                      <div className="text-sm text-gray-500">
+                        {report.report_date ? new Date(report.report_date).toLocaleDateString('tr-TR') : 'Tarih Yok'}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {report.report_time || ''}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">Fiş Sayısı</div>
+                      <div className="font-bold text-blue-600 text-lg">{report.receipt_count || 0}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 text-sm border-t pt-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Toplam Satış:</span>
+                      <span className="font-semibold">₺{parseFloat(report.total_sales || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">KDV:</span>
+                      <span className="text-purple-600 font-semibold">₺{parseFloat(report.total_vat || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-gray-600">💵 Nakit:</span>
+                      <span>₺{parseFloat(report.cash_amount || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">💳 Kredi Kartı:</span>
+                      <span>₺{parseFloat(report.credit_card_amount || 0).toFixed(2)}</span>
+                    </div>
+                    {report.fiscal_number && (
+                      <div className="text-xs text-gray-500 mt-2">
+                        Mali No: {report.fiscal_number}
+                      </div>
+                    )}
+                  </div>
+
+                  {report.image_path && (
+                    <img
+                      src={`${API_URL}/${report.image_path}`}
+                      alt="Z Raporu"
+                      className="w-full h-40 object-cover rounded mt-3 cursor-pointer"
+                      onClick={() => window.open(`${API_URL}/${report.image_path}`, '_blank')}
+                    />
+                  )}
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>

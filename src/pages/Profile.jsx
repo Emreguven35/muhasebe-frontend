@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 function Profile() {
   const navigate = useNavigate();
@@ -19,20 +18,15 @@ function Profile() {
 
   const loadUserInfo = useCallback(async () => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (response.data.success) {
-        setUserInfo(response.data.user);
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        setUserInfo(JSON.parse(userData));
+      } else {
+        handleLogout();
       }
     } catch (error) {
       console.error('Profil yükleme hatası:', error);
-      if (error.response?.status === 401) {
-        handleLogout();
-      }
+      handleLogout();
     } finally {
       setLoading(false);
     }
@@ -80,13 +74,14 @@ function Profile() {
   }
 
   const formatDate = (dateString) => {
+    if (!dateString) return '-';
     const date = new Date(dateString);
     return date.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
   };
 
   return (
     <div className="container" style={{ paddingTop: '20px', paddingBottom: '80px' }}>
-      <h1 style={{ fontSize: '28px', marginBottom: '24px', color: 'var(--gray-900)' }}>
+      <h1 style={{ fontSize: '28px', marginBottom: '24px', color: '#1f2937' }}>
         👤 Profil
       </h1>
 
@@ -106,27 +101,23 @@ function Profile() {
           }}>
             🧑‍💼
           </div>
-          <h2 style={{ fontSize: '24px', marginBottom: '8px', color: 'var(--gray-900)' }}>
+          <h2 style={{ fontSize: '24px', marginBottom: '8px', color: '#1f2937' }}>
             {userInfo?.name || 'Kullanıcı'}
           </h2>
-          <p style={{ color: 'var(--gray-800)', fontSize: '14px' }}>
+          <p style={{ color: '#4b5563', fontSize: '14px' }}>
             {userInfo?.email || '-'}
           </p>
         </div>
 
         <div style={{ 
-          borderTop: '1px solid var(--gray-200)', 
+          borderTop: '1px solid #e5e7eb', 
           paddingTop: '16px',
           display: 'flex',
           flexDirection: 'column',
           gap: '12px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--gray-800)' }}>Üyelik Tarihi:</span>
-            <strong>{userInfo?.created_at ? formatDate(userInfo.created_at) : '-'}</strong>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--gray-800)' }}>Kullanıcı ID:</span>
+            <span style={{ color: '#4b5563' }}>Kullanıcı ID:</span>
             <strong>#{userInfo?.id || '-'}</strong>
           </div>
         </div>
@@ -148,7 +139,7 @@ function Profile() {
                 className="btn"
                 style={{ 
                   background: 'white',
-                  color: 'var(--primary)',
+                  color: '#3b82f6',
                   padding: '8px 16px',
                   fontSize: '14px'
                 }}
@@ -161,7 +152,7 @@ function Profile() {
       )}
 
       <div className="card" style={{ marginBottom: '16px' }}>
-        <h3 style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--gray-900)' }}>
+        <h3 style={{ fontSize: '18px', marginBottom: '16px', color: '#1f2937' }}>
           📱 Uygulama
         </h3>
         
@@ -171,11 +162,11 @@ function Profile() {
           gap: '12px'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--gray-800)' }}>Versiyon:</span>
+            <span style={{ color: '#4b5563' }}>Versiyon:</span>
             <strong>1.0.0</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ color: 'var(--gray-800)' }}>PWA Durumu:</span>
+            <span style={{ color: '#4b5563' }}>PWA Durumu:</span>
             <span style={{ 
               padding: '4px 12px',
               borderRadius: '12px',
@@ -191,20 +182,20 @@ function Profile() {
       </div>
 
       <div className="card" style={{ marginBottom: '16px' }}>
-        <h3 style={{ fontSize: '18px', marginBottom: '12px', color: 'var(--gray-900)' }}>
+        <h3 style={{ fontSize: '18px', marginBottom: '12px', color: '#1f2937' }}>
           ℹ️ Hakkında
         </h3>
-        <p style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--gray-800)' }}>
+        <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#4b5563' }}>
           Muhasebe OCR, fiş fotoğraflarınızı yükleyip OCR ile otomatik okuyarak Excel'e aktarmanızı sağlar.
         </p>
         
         <div style={{ 
           marginTop: '16px',
           padding: '12px',
-          background: 'var(--gray-100)',
+          background: '#f3f4f6',
           borderRadius: '8px',
           fontSize: '14px',
-          color: 'var(--gray-800)'
+          color: '#4b5563'
         }}>
           <p><strong>Özellikler:</strong></p>
           <ul style={{ marginLeft: '20px', marginTop: '8px' }}>
@@ -214,6 +205,7 @@ function Profile() {
             <li>💾 Veritabanı kaydı</li>
             <li>🔐 Kullanıcı authentication</li>
             <li>📱 PWA desteği</li>
+            <li>📑 Z Raporu desteği</li>
           </ul>
         </div>
       </div>
@@ -222,8 +214,15 @@ function Profile() {
         className="btn btn-large"
         style={{ 
           marginTop: '20px',
-          background: 'var(--danger)',
-          color: 'white'
+          background: '#ef4444',
+          color: 'white',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '14px',
+          borderRadius: '8px',
+          fontSize: '16px',
+          fontWeight: '600',
+          width: '100%'
         }}
         onClick={handleLogout}
       >

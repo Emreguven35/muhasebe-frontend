@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 
 function ZRaporUpload() {
@@ -7,6 +6,7 @@ function ZRaporUpload() {
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
@@ -54,21 +54,29 @@ function ZRaporUpload() {
     setResult(null);
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const user = JSON.parse(localStorage.getItem('user'));
       const formData = new FormData();
-      formData.append('image', selectedFile);
-      const token = localStorage.getItem('token');
+      formData.append('receipt', selectedFile);
+      formData.append('userId', user.id);
 
-      const response = await axios.post(`${API_URL}/api/zrapor/upload`, formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}` 
-        }
+      const response = await fetch(`${API_URL}/api/upload-z-report`, {
+        method: 'POST',
+        body: formData
       });
 
-      if (response.data.success) {
-        const parsedData = response.data.data;
-        setResult(parsedData);
+      const data = await response.json();
+
+      if (data.success) {
+        const report = data.zReport;
+        setResult({
+          tarih: report.report_date,
+          raporNo: report.fiscal_number,
+          toplamSatis: report.total_sales,
+          toplamKdv: report.total_vat,
+          nakitSatis: report.cash_amount,
+          posSatis: report.credit_card_amount,
+          fisNo: report.receipt_count
+        });
         
         alert('✅ Z Raporu başarıyla yüklendi ve kaydedildi!');
         
@@ -90,7 +98,7 @@ function ZRaporUpload() {
 
   return (
     <div className="container" style={{ paddingTop: '20px', paddingBottom: '80px' }}>
-      <h1 style={{ fontSize: '28px', marginBottom: '24px', color: 'var(--gray-900)' }}>
+      <h1 style={{ fontSize: '28px', marginBottom: '24px', color: '#1f2937' }}>
         📊 Z Raporu Yükle
       </h1>
 
@@ -99,6 +107,7 @@ function ZRaporUpload() {
           <input
             type="file"
             accept="image/*"
+            capture="environment"
             onChange={handleFileSelect}
             style={{ display: 'none' }}
             id="fileInput"
@@ -112,15 +121,15 @@ function ZRaporUpload() {
               alignItems: 'center',
               cursor: 'pointer',
               padding: '40px',
-              border: '2px dashed var(--gray-200)',
+              border: '2px dashed #e5e7eb',
               borderRadius: '12px'
             }}
           >
             <span style={{ fontSize: '64px', marginBottom: '16px' }}>📊</span>
-            <p style={{ fontSize: '18px', color: 'var(--gray-800)', marginBottom: '8px' }}>
+            <p style={{ fontSize: '18px', color: '#4b5563', marginBottom: '8px' }}>
               Z Raporu Fotoğrafı Çek veya Seç
             </p>
-            <p style={{ fontSize: '14px', color: 'var(--gray-800)', marginBottom: '16px' }}>
+            <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
               Z raporunu net bir şekilde çekin
             </p>
 
@@ -178,19 +187,33 @@ function ZRaporUpload() {
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
               onClick={handleUpload}
-              className="btn btn-success"
-              style={{ flex: 1 }}
+              style={{
+                flex: 1,
+                padding: '12px',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
             >
               ✅ Yükle ve Kaydet
             </button>
             
             <button
               onClick={handleReset}
-              className="btn"
               style={{ 
                 flex: 1,
-                background: 'var(--gray-200)',
-                color: 'var(--gray-800)'
+                padding: '12px',
+                background: '#e5e7eb',
+                color: '#4b5563',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
               }}
             >
               🔄 Yeniden Çek
@@ -202,10 +225,10 @@ function ZRaporUpload() {
       {loading && (
         <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-          <p style={{ fontSize: '18px', color: 'var(--gray-800)' }}>
+          <p style={{ fontSize: '18px', color: '#4b5563' }}>
             OCR işleniyor...
           </p>
-          <p style={{ fontSize: '13px', color: 'var(--gray-800)', marginTop: '8px' }}>
+          <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>
             Z Raporu okunuyor ve kaydediliyor...
           </p>
         </div>
@@ -213,31 +236,35 @@ function ZRaporUpload() {
 
       {result && (
         <div className="card">
-          <h3 style={{ marginBottom: '16px', color: 'var(--success)' }}>
+          <h3 style={{ marginBottom: '16px', color: '#10b981' }}>
             ✅ Z Raporu Kaydedildi!
           </h3>
           
           <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
             <p><strong>Tarih:</strong> {result.tarih || '-'}</p>
-            <p><strong>Fiş No:</strong> {result.fisNo || '-'}</p>
-            <p><strong>Rapor No:</strong> {result.raporNo || '-'}</p>
-            <p><strong>Toplam Satış:</strong> {result.toplamSatis} ₺</p>
-            <p><strong>Toplam KDV:</strong> {result.toplamKdv} ₺</p>
-            <p><strong>Matrah:</strong> {result.matrah} ₺</p>
-            <hr style={{ margin: '12px 0', border: '1px solid var(--gray-200)' }} />
-            <p><strong>Nakit:</strong> {result.nakitSatis} ₺</p>
-            <p><strong>POS:</strong> {result.posSatis} ₺</p>
-            <p><strong>Kredili:</strong> {result.krediliSatis} ₺</p>
-            <hr style={{ margin: '12px 0', border: '1px solid var(--gray-200)' }} />
-            {parseFloat(result.kdv1) > 0 && <p><strong>KDV %1:</strong> {result.kdv1} ₺</p>}
-            {parseFloat(result.kdv10) > 0 && <p><strong>KDV %10:</strong> {result.kdv10} ₺</p>}
-            {parseFloat(result.kdv20) > 0 && <p><strong>KDV %20:</strong> {result.kdv20} ₺</p>}
+            <p><strong>Fiş Sayısı:</strong> {result.fisNo || '-'}</p>
+            <p><strong>Mali No:</strong> {result.raporNo || '-'}</p>
+            <p><strong>Toplam Satış:</strong> {parseFloat(result.toplamSatis || 0).toFixed(2)} ₺</p>
+            <p><strong>Toplam KDV:</strong> {parseFloat(result.toplamKdv || 0).toFixed(2)} ₺</p>
+            <hr style={{ margin: '12px 0', border: '1px solid #e5e7eb' }} />
+            <p><strong>💵 Nakit:</strong> {parseFloat(result.nakitSatis || 0).toFixed(2)} ₺</p>
+            <p><strong>💳 POS:</strong> {parseFloat(result.posSatis || 0).toFixed(2)} ₺</p>
           </div>
           
           <button
             onClick={handleReset}
-            className="btn btn-primary btn-large"
-            style={{ marginTop: '16px' }}
+            style={{
+              marginTop: '16px',
+              width: '100%',
+              padding: '14px',
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
           >
             ➕ Yeni Z Raporu Yükle
           </button>

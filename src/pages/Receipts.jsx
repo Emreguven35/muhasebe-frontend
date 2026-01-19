@@ -8,6 +8,8 @@ function Receipts() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -22,36 +24,26 @@ function Receipts() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-  
+
   const loadReceipts = async () => {
-    try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const token = localStorage.getItem('token'); 
-      const response = await axios.get(`${API_URL}/api/ocr/receipts`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data.success) {
-        setReceipts(response.data.receipts);
-      }
-    } catch (error) {
-      console.error('Hata:', error);
-    }
-  };
+  try {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const response = await axios.get(`${API_URL}/api/receipts?userId=${user.id}`);
+    setReceipts(response.data);
+  } catch (error) {
+    console.error('Hata:', error);
+  }
+};
 
   const loadZRaporlar = async () => {
-    try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/zrapor/list`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data.success) {
-        setZRaporlar(response.data.reports);
-      }
-    } catch (error) {
-      console.error('Hata:', error);
-    }
-  };
+  try {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const response = await axios.get(`${API_URL}/api/z-reports?userId=${user.id}`);
+    setZRaporlar(response.data);
+  } catch (error) {
+    console.error('Hata:', error);
+  }
+};
 
   const handleEdit = (receipt) => {
     setEditingId(receipt.id);
@@ -72,43 +64,33 @@ function Receipts() {
     setEditForm({});
   };
 
-  const handleSave = async (receiptId) => {
+  const handleSave = async (id) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user'));
+      // API'ye güncellenmiş verileri gönderiyoruz
+      await axios.put(`${API_URL}/api/receipts/${id}?userId=${user.id}`, editForm);
       
-      await axios.put(
-        `${API_URL}/api/ocr/receipts/${receiptId}`,
-        editForm,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      alert('✅ Fiş güncellendi!');
-      setEditingId(null);
-      loadReceipts();
+      alert('✅ Fiş başarıyla güncellendi!');
+      setEditingId(null); // Düzenleme modundan çık
+      loadReceipts();    // Listeyi yenile
     } catch (error) {
-      alert('❌ Güncelleme hatası: ' + error.message);
+      console.error('Güncelleme hatası:', error);
+      alert('❌ Güncelleme sırasında bir hata oluştu: ' + (error.response?.data?.message || error.message));
     }
   };
 
   const handleDelete = async (receiptId) => {
-    if (!window.confirm('Bu fişi silmek istediğinize emin misiniz?')) return;
-    
-    try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const token = localStorage.getItem('token');
-      
-      await axios.delete(
-        `${API_URL}/api/ocr/receipts/${receiptId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      alert('✅ Fiş silindi!');
-      loadReceipts();
-    } catch (error) {
-      alert('❌ Silme hatası: ' + error.message);
-    }
-  };
+  if (!window.confirm('Bu fişi silmek istediğinize emin misiniz?')) return;
+  
+  try {
+    const user = JSON.parse(localStorage.getItem('user'));
+    await axios.delete(`${API_URL}/api/receipts/${receiptId}?userId=${user.id}`);
+    alert('✅ Fiş silindi!');
+    loadReceipts();
+  } catch (error) {
+    alert('❌ Silme hatası: ' + error.message);
+  }
+};
 
   const handleDeleteZRapor = async (id) => {
     if (!window.confirm('Bu Z raporunu silmek istediğinize emin misiniz?')) return;
@@ -128,47 +110,20 @@ function Receipts() {
     }
   };
 
-  const exportToExcel = async () => {
-    try {
-      if (receipts.length === 0) {
-        alert('Fiş bulunamadı!');
-        return;
-      }
-
-      const formattedReceipts = receipts.map(r => ({
-        firmaUnvani: r.firma_unvani,
-        tarih: r.tarih,
-        fisNo: r.fis_no,
-        giderCinsi: r.gider_cinsi,
-        toplamTutar: r.toplam_tutar,
-        kdv1: r.kdv1,
-        kdv10: r.kdv10,
-        kdv20: r.kdv20
-      }));
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001'; 
-      const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `${API_URL}/api/ocr/export-excel`,
-        { receipts: formattedReceipts },
-        { 
-          responseType: 'blob',
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'harcamalar.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      alert('✅ Excel indirildi!');
-    } catch (error) {
-      alert('❌ Hata: ' + error.message);
+ const exportToExcel = async () => {
+  try {
+    if (receipts.length === 0) {
+      alert('Fiş bulunamadı!');
+      return;
     }
-  };
+
+    alert('Excel export özelliği yakında eklenecek!');
+  } catch (error) {
+    alert('❌ Hata: ' + error.message);
+  }
+};
+
+     
 
   const totals = {
     count: receipts.length,
