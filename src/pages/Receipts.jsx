@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
+
 
 function Receipts() {
   const [activeTab, setActiveTab] = useState('receipts');
@@ -13,15 +15,19 @@ function Receipts() {
     loadData();
   }, [activeTab]);
 
-  const loadData = async () => {
-    setLoading(true);
-    if (activeTab === 'receipts') {
-      await loadReceipts();
-    } else {
-      await loadZRaporlar();
-    }
-    setLoading(false);
-  };
+  const loadData = useCallback(async () => {
+  setLoading(true);
+  if (activeTab === 'receipts') {
+    await loadReceipts();
+  } else {
+    await loadZRaporlar();
+  }
+  setLoading(false);
+}, [activeTab]);
+
+useEffect(() => {
+  loadData();
+}, [loadData]);
 
   const loadReceipts = async () => {
     try {
