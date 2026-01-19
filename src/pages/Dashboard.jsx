@@ -20,17 +20,18 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      fetchReceipts(parsedUser.id);
-      fetchZReports(parsedUser.id);
-      fetchStats(parsedUser.id);
-    } else {
-      navigate('/login');
-    }
-  }, [navigate]);
+  const userData = localStorage.getItem('user');
+  if (userData) {
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    fetchReceipts(parsedUser.id);
+    fetchZReports(parsedUser.id);
+    fetchStats(parsedUser.id);
+  } else {
+    navigate('/login');
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [navigate]);
 
   const fetchReceipts = async (userId) => {
     try {

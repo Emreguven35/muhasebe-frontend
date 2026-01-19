@@ -10,16 +10,16 @@ function Receipts() {
   const [editForm, setEditForm] = useState({});
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    if (activeTab === 'receipts') {
-      await loadReceipts();
-    } else {
-      await loadZRaporlar();
-    }
-    setLoading(false);
-  }, [activeTab]);
-
+ const loadData = useCallback(async () => {
+  setLoading(true);
+  if (activeTab === 'receipts') {
+    await loadReceipts();
+  } else {
+    await loadZRaporlar();
+  }
+  setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [activeTab]);
   useEffect(() => {
     loadData();
   }, [loadData]);

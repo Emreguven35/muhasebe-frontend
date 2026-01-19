@@ -73,11 +73,7 @@ function Profile() {
     );
   }
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long' });
-  };
+
 
   return (
     <div className="container" style={{ paddingTop: '20px', paddingBottom: '80px' }}>
