@@ -5,10 +5,11 @@ import Upload from './pages/Upload';
 import Receipts from './pages/Receipts';
 import Profile from './pages/Profile';
 import Login from './pages/Login';
-import ProtectedRoute from './components/ProtectedRoute';  // ← EKLE
+import ProtectedRoute from './components/ProtectedRoute';
+import ZRaporUpload from './pages/ZRaporUpload';
+
 import './App.css';
 
-// BottomNav aynı kalacak...
 function BottomNav() {
   const location = useLocation();
   
@@ -52,7 +53,21 @@ function BottomNav() {
         fontSize: '12px'
       }}>
         <span style={{ fontSize: '24px', marginBottom: '4px' }}>📸</span>
-        Yükle
+        Fiş Yükle
+      </Link>
+      
+      <Link to="/zrapor-yukle" style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textDecoration: 'none',
+        color: isActive('/zrapor-yukle') ? 'var(--primary)' : 'var(--gray-800)',
+        padding: '8px',
+        fontSize: '12px'
+      }}>
+        <span style={{ fontSize: '24px', marginBottom: '4px' }}>📊</span>
+        Z Raporu
       </Link>
       
       <Link to="/receipts" style={{
@@ -95,7 +110,7 @@ function AppContent() {
       <Routes>
         <Route path="/login" element={<Login />} />
         
-        {/* Protected Routes - Token olmadan giremez */}
+        {/* Protected Routes */}
         <Route path="/" element={
           <ProtectedRoute>
             <Dashboard />
@@ -105,6 +120,12 @@ function AppContent() {
         <Route path="/upload" element={
           <ProtectedRoute>
             <Upload />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/zrapor-yukle" element={
+          <ProtectedRoute>
+            <ZRaporUpload />
           </ProtectedRoute>
         } />
         
