@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-
 function Receipts() {
   const [activeTab, setActiveTab] = useState('receipts');
   const [receipts, setReceipts] = useState([]);
@@ -10,24 +9,20 @@ function Receipts() {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
 
-  useEffect(() => {
-    loadData();
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    if (activeTab === 'receipts') {
+      await loadReceipts();
+    } else {
+      await loadZRaporlar();
+    }
+    setLoading(false);
   }, [activeTab]);
 
-  const loadData = useCallback(async () => {
-  setLoading(true);
-  if (activeTab === 'receipts') {
-    await loadReceipts();
-  } else {
-    await loadZRaporlar();
-  }
-  setLoading(false);
-}, [activeTab]);
-
-useEffect(() => {
-  loadData();
-}, [loadData]);
-
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+  
   const loadReceipts = async () => {
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
