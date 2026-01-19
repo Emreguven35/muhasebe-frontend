@@ -6,7 +6,7 @@ function Dashboard() {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
   
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('receipts'); // 'receipts' veya 'zreports'
+  const [activeTab, setActiveTab] = useState('receipts');
   const [receipts, setReceipts] = useState([]);
   const [zReports, setZReports] = useState([]);
   const [stats, setStats] = useState({
@@ -20,28 +20,39 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  const userData = localStorage.getItem('user');
-  if (userData) {
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    fetchReceipts(parsedUser.id);
-    fetchZReports(parsedUser.id);
-    fetchStats(parsedUser.id);
-  } else {
-    navigate('/login');
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [navigate]);
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      loadData(parsedUser.id);
+    } else {
+      navigate('/login');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
+
+  const loadData = async (userId) => {
+    try {
+      await Promise.all([
+        fetchReceipts(userId),
+        fetchZReports(userId),
+        fetchStats(userId)
+      ]);
+    } catch (error) {
+      console.error('Veri yükleme hatası:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchReceipts = async (userId) => {
     try {
       const response = await fetch(`${API_URL}/api/receipts?userId=${userId}`);
       const data = await response.json();
-      setReceipts(data);
+      setReceipts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Fişler yüklenirken hata:', error);
-    } finally {
-      setLoading(false);
+      setReceipts([]);
     }
   };
 
@@ -49,9 +60,10 @@ function Dashboard() {
     try {
       const response = await fetch(`${API_URL}/api/z-reports?userId=${userId}`);
       const data = await response.json();
-      setZReports(data);
+      setZReports(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Z Raporları yüklenirken hata:', error);
+      setZReports([]);
     }
   };
 
@@ -88,12 +100,7 @@ function Dashboard() {
 
       if (data.success) {
         alert(activeTab === 'zreports' ? 'Z Raporu başarıyla yüklendi!' : 'Fiş başarıyla yüklendi!');
-        if (activeTab === 'zreports') {
-          fetchZReports(user.id);
-        } else {
-          fetchReceipts(user.id);
-          fetchStats(user.id);
-        }
+        loadData(user.id);
       } else {
         alert('Yükleme başarısız: ' + (data.error || 'Bilinmeyen hata'));
       }
@@ -117,8 +124,7 @@ function Dashboard() {
       const data = await response.json();
 
       if (data.success) {
-        fetchReceipts(user.id);
-        fetchStats(user.id);
+        loadData(user.id);
       }
     } catch (error) {
       console.error('Silme hatası:', error);
@@ -130,20 +136,6 @@ function Dashboard() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
-  };
-
-  const exportToExcel = async () => {
-    try {
-      if (receipts.length === 0) {
-        alert('Excel\'e aktarılacak fiş bulunamadı!');
-        return;
-      }
-
-      // Excel export kodu buraya eklenecek
-      alert('Excel export özelliği yakında eklenecek!');
-    } catch (error) {
-      alert('❌ Excel indirme hatası: ' + error.message);
-    }
   };
 
   if (loading) {
@@ -233,7 +225,7 @@ function Dashboard() {
         </div>
 
         {/* Upload Butonu */}
-        <div className="mb-6 flex gap-4">
+        <div className="mb-6">
           <label className="bg-blue-500 text-white px-6 py-3 rounded-lg cursor-pointer hover:bg-blue-600 inline-block">
             {uploading ? 'Yükleniyor...' : `${activeTab === 'zreports' ? 'Z Raporu' : 'Fiş'} Yükle`}
             <input
@@ -244,15 +236,6 @@ function Dashboard() {
               className="hidden"
             />
           </label>
-          
-          {activeTab === 'receipts' && receipts.length > 0 && (
-            <button
-              onClick={exportToExcel}
-              className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600"
-            >
-              📥 Excel İndir ({receipts.length} Fiş)
-            </button>
-          )}
         </div>
 
         {/* Tab İçeriği */}
