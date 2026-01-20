@@ -1,12 +1,13 @@
+// src/pages/ZRaporUpload.jsx
 import React, { useState } from 'react';
 import imageCompression from 'browser-image-compression';
+import api from '../services/api';
 
 function ZRaporUpload() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
@@ -54,20 +55,17 @@ function ZRaporUpload() {
     setResult(null);
 
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
       const formData = new FormData();
       formData.append('receipt', selectedFile);
-      formData.append('userId', user.id);
 
-      const response = await fetch(`${API_URL}/api/upload-z-report`, {
-        method: 'POST',
-        body: formData
+      const response = await api.post('/api/z-reports/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        const report = data.zReport;
+      if (response.data.success) {
+        const report = response.data.zReport;
         setResult({
           tarih: report.report_date,
           raporNo: report.fiscal_number,
@@ -84,7 +82,8 @@ function ZRaporUpload() {
         setPreview(null);
       }
     } catch (error) {
-      alert('❌ Yükleme hatası: ' + error.message);
+      console.error('Upload error:', error);
+      alert('❌ Yükleme hatası: ' + (error.response?.data?.error || error.message));
     } finally {
       setLoading(false);
     }

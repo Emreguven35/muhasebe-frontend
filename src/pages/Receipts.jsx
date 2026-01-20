@@ -1,5 +1,7 @@
+// src/pages/Receipts.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../services/api';
+
 
 function Receipts() {
   const [activeTab, setActiveTab] = useState('receipts');
@@ -8,41 +10,39 @@ function Receipts() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
- const loadData = useCallback(async () => {
-  setLoading(true);
-  if (activeTab === 'receipts') {
-    await loadReceipts();
-  } else {
-    await loadZRaporlar();
-  }
-  setLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [activeTab]);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    if (activeTab === 'receipts') {
+      await loadReceipts();
+    } else {
+      await loadZRaporlar();
+    }
+    setLoading(false);
+  }, [activeTab]);
+
   useEffect(() => {
     loadData();
   }, [loadData]);
 
   const loadReceipts = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      const response = await axios.get(`${API_URL}/api/receipts?userId=${user.id}`);
-      setReceipts(response.data);
-    } catch (error) {
-      console.error('Hata:', error);
-    }
-  };
+  try {
+    const response = await api.get('/api/receipts');
+    setReceipts(response.data);
+  } catch (error) {
+    console.error('Hata:', error);
+  }
+};
 
-  const loadZRaporlar = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      const response = await axios.get(`${API_URL}/api/z-reports?userId=${user.id}`);
-      setZRaporlar(response.data);
-    } catch (error) {
-      console.error('Hata:', error);
-    }
-  };
+  // loadZRaporlar fonksiyonunu da değiştir:
+const loadZRaporlar = async () => {
+  try {
+    const response = await api.get('/api/z-reports');
+    setZRaporlar(response.data);
+  } catch (error) {
+    console.error('Hata:', error);
+  }
+};
 
   const handleEdit = (receipt) => {
     setEditingId(receipt.id);
@@ -63,9 +63,7 @@ function Receipts() {
 
   const handleSave = async (id) => {
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      
-      await axios.put(`${API_URL}/api/receipts/${id}?userId=${user.id}`, editForm);
+      await api.put(`/api/receipts/${id}`, editForm);
       
       alert('✅ Fiş başarıyla güncellendi!');
       setEditingId(null);
@@ -80,8 +78,7 @@ function Receipts() {
     if (!window.confirm('Bu fişi silmek istediğinize emin misiniz?')) return;
     
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      await axios.delete(`${API_URL}/api/receipts/${receiptId}?userId=${user.id}`);
+      await api.delete(`/api/receipts/${id}`);
       alert('✅ Fiş silindi!');
       loadReceipts();
     } catch (error) {
@@ -93,8 +90,7 @@ function Receipts() {
     if (!window.confirm('Bu Z raporunu silmek istediğinize emin misiniz?')) return;
     
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      await axios.delete(`${API_URL}/api/z-reports/${id}?userId=${user.id}`);
+      await api.delete(`/api/z-reports/${id}`);
       alert('✅ Z Raporu silindi!');
       loadZRaporlar();
     } catch (error) {
@@ -108,9 +104,23 @@ function Receipts() {
         alert('Fiş bulunamadı!');
         return;
       }
-      alert('Excel export özelliği yakında eklenecek!');
+      
+      const response = await api.get('/api/receipts/export', {
+
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `fisler_${new Date().toISOString().split('T')[0]}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      alert('✅ Excel dosyası indirildi!');
     } catch (error) {
-      alert('❌ Hata: ' + error.message);
+      alert('❌ Excel indirme hatası: ' + error.message);
     }
   };
 

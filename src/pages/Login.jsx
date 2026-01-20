@@ -1,5 +1,7 @@
+// src/pages/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 function Login() {
   const navigate = useNavigate();
@@ -21,35 +23,26 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
     try {
-      const endpoint = isLogin ? '/api/login' : '/api/register';
+      const endpoint = isLogin ? '/login' : '/register';
       const payload = isLogin 
         ? { email: formData.email, password: formData.password }
         : formData;
 
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await api.post(endpoint, payload);
 
-      const data = await response.json();
-
-      if (response.ok && data.token) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
         alert(`✅ ${isLogin ? 'Giriş' : 'Kayıt'} başarılı!`);
         navigate('/');
       } else {
-        alert(`❌ Hata: ${data.error || 'Bir hata oluştu'}`);
+        alert(`❌ Hata: ${response.data.error || 'Bir hata oluştu'}`);
       }
     } catch (error) {
       console.error('❌ Hata:', error);
-      alert(`❌ Hata: ${error.message}`);
+      alert(`❌ Hata: ${error.response?.data?.error || error.message}`);
     } finally {
       setLoading(false);
     }

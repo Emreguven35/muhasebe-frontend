@@ -1,3 +1,4 @@
+// src/pages/Profile.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -72,8 +73,6 @@ function Profile() {
       </div>
     );
   }
-
-
 
   return (
     <div className="container" style={{ paddingTop: '20px', paddingBottom: '80px' }}>
@@ -159,7 +158,7 @@ function Profile() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: '#4b5563' }}>Versiyon:</span>
-            <strong>1.0.0</strong>
+            <strong>2.0.0</strong>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: '#4b5563' }}>PWA Durumu:</span>
@@ -199,7 +198,7 @@ function Profile() {
             <li>🔍 Google Vision OCR</li>
             <li>📊 Excel export</li>
             <li>💾 Veritabanı kaydı</li>
-            <li>🔐 Kullanıcı authentication</li>
+            <li>🔐 JWT Authentication</li>
             <li>📱 PWA desteği</li>
             <li>📑 Z Raporu desteği</li>
           </ul>
