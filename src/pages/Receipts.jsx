@@ -75,16 +75,16 @@ const loadZRaporlar = async () => {
 };
 
   const handleDelete = async (receiptId) => {
-    if (!window.confirm('Bu fişi silmek istediğinize emin misiniz?')) return;
-    
-    try {
-      await api.delete(`/api/receipts/${id}`);
-      alert('✅ Fiş silindi!');
-      loadReceipts();
-    } catch (error) {
-      alert('❌ Silme hatası: ' + error.message);
-    }
-  };
+  if (!window.confirm('Bu fişi silmek istediğinize emin misiniz?')) return;
+  
+  try {
+    await api.delete(`/api/receipts/${receiptId}`);  // ← receiptId olmalı!
+    alert('✅ Fiş silindi!');
+    loadReceipts();
+  } catch (error) {
+    alert('❌ Silme hatası: ' + error.message);
+  }
+};
 
   const handleDeleteZRapor = async (id) => {
     if (!window.confirm('Bu Z raporunu silmek istediğinize emin misiniz?')) return;
