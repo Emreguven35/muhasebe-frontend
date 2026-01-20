@@ -62,17 +62,17 @@ const loadZRaporlar = async () => {
   };
 
   const handleSave = async (id) => {
-    try {
-      await api.put(`/api/receipts/${id}`, editForm);
-      
-      alert('✅ Fiş başarıyla güncellendi!');
-      setEditingId(null);
-      loadReceipts();
-    } catch (error) {
-      console.error('Güncelleme hatası:', error);
-      alert('❌ Güncelleme hatası: ' + error.message);
-    }
-  };
+  try {
+    await api.put(`/api/receipts/${id}`, editForm);
+    
+    alert('✅ Fiş başarıyla güncellendi!');
+    setEditingId(null);
+    loadReceipts();
+  } catch (error) {
+    console.error('Güncelleme hatası:', error);
+    alert('❌ Güncelleme hatası: ' + error.message);
+  }
+};
 
   const handleDelete = async (receiptId) => {
     if (!window.confirm('Bu fişi silmek istediğinize emin misiniz?')) return;
