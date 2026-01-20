@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import React, { useState, useEffect, useCallback } from 'react';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -18,30 +19,32 @@ function Dashboard() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      loadData();
-    } else {
-      navigate('/login');
-    }
-  }, [navigate]);
+  
 
-  const loadData = async () => {
-    try {
-      await Promise.all([
-        fetchReceipts(),
-        fetchZReports(),
-        fetchStats()
-      ]);
-    } catch (error) {
-      console.error('Veri yükleme hatası:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loadData = useCallback(async () => {
+  try {
+    await Promise.all([
+      fetchReceipts(),
+      fetchZReports(),
+      fetchStats()
+    ]);
+  } catch (error) {
+    console.error('Veri yükleme hatası:', error);
+  } finally {
+    setLoading(false);
+  }
+}, []);
+
+useEffect(() => {
+  const userData = localStorage.getItem('user');
+  if (userData) {
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    loadData();
+  } else {
+    navigate('/login');
+  }
+}, [navigate, loadData]);
 
   const fetchReceipts = async () => {
     try {
