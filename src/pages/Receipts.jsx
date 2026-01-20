@@ -28,12 +28,19 @@ function Receipts() {
   const loadReceipts = async () => {
   try {
     const response = await api.get('/api/receipts');
-    setReceipts(response.data);
+    const data = Array.isArray(response.data) ? response.data : [];
+    // Tarihe göre sırala - en yeni en üstte
+    const sorted = data.sort((a, b) => {
+      const dateA = new Date(a.created_at || a.date || 0);
+      const dateB = new Date(b.created_at || b.date || 0);
+      return dateB - dateA;
+    });
+    setReceipts(sorted);
   } catch (error) {
     console.error('Hata:', error);
+    setReceipts([]);
   }
 };
-
   // loadZRaporlar fonksiyonunu da değiştir:
 const loadZRaporlar = async () => {
   try {

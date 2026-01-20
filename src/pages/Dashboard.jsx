@@ -6,62 +6,62 @@ function Dashboard() {
   const navigate = useNavigate();
   
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('receipts');
   const [receipts, setReceipts] = useState([]);
-  const [zReports, setZReports] = useState([]);
   const [stats, setStats] = useState({
     totalReceipts: 0,
     totalAmount: 0,
     thisMonthReceipts: 0,
     thisMonthAmount: 0
   });
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  
+  // Para formatı - Türk formatı (1.234,56)
+  const formatMoney = (amount) => {
+    const num = parseFloat(amount || 0);
+    return num.toLocaleString('tr-TR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
+  };
 
   const loadData = useCallback(async () => {
-  try {
-    await Promise.all([
-      fetchReceipts(),
-      fetchZReports(),
-      fetchStats()
-    ]);
-  } catch (error) {
-    console.error('Veri yükleme hatası:', error);
-  } finally {
-    setLoading(false);
-  }
-}, []);
+    try {
+      await Promise.all([
+        fetchReceipts(),
+        fetchStats()
+      ]);
+    } catch (error) {
+      console.error('Veri yükleme hatası:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-useEffect(() => {
-  const userData = localStorage.getItem('user');
-  if (userData) {
-    const parsedUser = JSON.parse(userData);
-    setUser(parsedUser);
-    loadData();
-  } else {
-    navigate('/login');
-  }
-}, [navigate, loadData]);
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      loadData();
+    } else {
+      navigate('/login');
+    }
+  }, [navigate, loadData]);
 
   const fetchReceipts = async () => {
     try {
       const response = await api.get('/api/receipts');
-      setReceipts(Array.isArray(response.data) ? response.data : []);
+      const data = Array.isArray(response.data) ? response.data : [];
+      // Tarihe göre sırala - en yeni en üstte
+      const sorted = data.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.date || 0);
+        const dateB = new Date(b.created_at || b.date || 0);
+        return dateB - dateA;
+      });
+      setReceipts(sorted);
     } catch (error) {
       console.error('Fişler yüklenirken hata:', error);
       setReceipts([]);
-    }
-  };
-
-  const fetchZReports = async () => {
-    try {
-      const response = await api.get('/api/z-reports');
-      setZReports(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error('Z Raporları yüklenirken hata:', error);
-      setZReports([]);
     }
   };
 
@@ -74,307 +74,331 @@ useEffect(() => {
     }
   };
 
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append('receipt', file);
-
-    try {
-      const endpoint = activeTab === 'zreports' 
-        ? '/api/z-reports/upload'
-        : '/api/receipts/upload';
-        
-      const response = await api.post(endpoint, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      if (response.data.success) {
-        alert(activeTab === 'zreports' ? '✅ Z Raporu başarıyla yüklendi!' : '✅ Fiş başarıyla yüklendi!');
-        loadData();
-      } else {
-        alert('❌ Yükleme başarısız: ' + (response.data.error || 'Bilinmeyen hata'));
-      }
-    } catch (error) {
-      console.error('Upload hatası:', error);
-      alert('❌ Yükleme hatası: ' + (error.response?.data?.error || error.message));
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Bu fişi silmek istediğinizden emin misiniz?')) return;
-
-    try {
-      const response = await api.delete(`/api/receipts/${id}`);
-
-      if (response.data.success) {
-        loadData();
-        alert('✅ Fiş silindi!');
-      }
-    } catch (error) {
-      console.error('Silme hatası:', error);
-      alert('❌ Fiş silinemedi!');
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
   };
 
+  // Kategoriye göre renk
+  const getCategoryColor = (category) => {
+    const colors = {
+      'Market': { bg: '#dcfce7', text: '#166534' },
+      'Akaryakıt': { bg: '#fee2e2', text: '#991b1b' },
+      'Yemek': { bg: '#fff7ed', text: '#9a3412' },
+      'Ulaşım': { bg: '#e0e7ff', text: '#3730a3' },
+      'Sağlık': { bg: '#fce7f3', text: '#9d174d' },
+      'Giyim': { bg: '#f3e8ff', text: '#7c3aed' },
+      'Elektronik': { bg: '#e0f2fe', text: '#0369a1' },
+      'Diğer': { bg: '#f3f4f6', text: '#4b5563' }
+    };
+    return colors[category] || colors['Diğer'];
+  };
+
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ 
-            width: '48px', 
-            height: '48px', 
-            border: '4px solid #e5e7eb', 
-            borderTopColor: '#3b82f6',
+            width: '56px', 
+            height: '56px', 
+            border: '4px solid rgba(255,255,255,0.3)', 
+            borderTopColor: 'white',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             margin: '0 auto'
           }}></div>
-          <p style={{ marginTop: '16px', color: '#6b7280' }}>Yükleniyor...</p>
+          <p style={{ marginTop: '16px', color: 'white', fontSize: '16px' }}>Yükleniyor...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
-      {/* Header */}
-      <div style={{ background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-            📋 Muhasebe Fiş Takip
-          </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span style={{ color: '#6b7280' }}>Merhaba, {user?.name}</span>
-            <button
-              onClick={handleLogout}
-              style={{
-                background: '#ef4444',
-                color: 'white',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              Çıkış
-            </button>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', paddingBottom: '100px' }}>
+      {/* Header - Gradient */}
+      <div style={{ 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '24px 20px 80px',
+        borderRadius: '0 0 32px 32px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', margin: 0 }}>Hoş geldin,</p>
+            <h1 style={{ color: 'white', fontSize: '24px', fontWeight: '700', margin: '4px 0 0' }}>
+              {user?.name || 'Kullanıcı'} 👋
+            </h1>
           </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              padding: '10px 16px',
+              borderRadius: '12px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '14px',
+              backdropFilter: 'blur(10px)'
+            }}
+          >
+            Çıkış
+          </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 24px' }}>
-        {/* İstatistikler */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-          <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '24px' }}>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Toplam Fiş</div>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#3b82f6' }}>
-              {stats.totalReceipts || 0}
+      {/* İstatistik Kartları - Floating */}
+      <div style={{ 
+        maxWidth: '600px', 
+        margin: '-60px auto 0', 
+        padding: '0 16px'
+      }}>
+        {/* Ana Kart - Toplam */}
+        <div style={{ 
+          background: 'white',
+          borderRadius: '20px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+          padding: '24px',
+          marginBottom: '16px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                borderRadius: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '24px'
+              }}>
+                💰
+              </div>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '13px', margin: 0 }}>Toplam Harcama</p>
+                <p style={{ color: '#111827', fontSize: '28px', fontWeight: '700', margin: '2px 0 0' }}>
+                  {formatMoney(stats.totalAmount)} ₺
+                </p>
+              </div>
+            </div>
+            <div style={{ 
+              background: '#ecfdf5', 
+              color: '#059669', 
+              padding: '6px 12px', 
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: '600'
+            }}>
+              {stats.totalReceipts || 0} Fiş
             </div>
           </div>
-          <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '24px' }}>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Toplam Tutar</div>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#10b981' }}>
-              ₺{parseFloat(stats.totalAmount || 0).toFixed(2)}
+
+          {/* Ayırıcı */}
+          <div style={{ height: '1px', background: '#e5e7eb', margin: '16px 0' }}></div>
+
+          {/* Bu Ay */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ 
+                width: '40px', 
+                height: '40px', 
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px'
+              }}>
+                📅
+              </div>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '12px', margin: 0 }}>Bu Ay</p>
+                <p style={{ color: '#111827', fontSize: '20px', fontWeight: '700', margin: '2px 0 0' }}>
+                  {formatMoney(stats.thisMonthAmount)} ₺
+                </p>
+              </div>
             </div>
-          </div>
-          <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '24px' }}>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Bu Ay Fiş</div>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#8b5cf6' }}>
-              {stats.thisMonthReceipts || 0}
-            </div>
-          </div>
-          <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '24px' }}>
-            <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Bu Ay Tutar</div>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#f59e0b' }}>
-              ₺{parseFloat(stats.thisMonthAmount || 0).toFixed(2)}
+            <div style={{ 
+              background: '#fef3c7', 
+              color: '#d97706', 
+              padding: '6px 12px', 
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: '600'
+            }}>
+              {stats.thisMonthReceipts || 0} Fiş
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '2px solid #e5e7eb', background: 'white', borderRadius: '12px 12px 0 0', padding: '0 16px' }}>
-          <button
-            onClick={() => setActiveTab('receipts')}
-            style={{
-              padding: '12px 16px',
-              border: 'none',
-              background: 'transparent',
-              borderBottom: activeTab === 'receipts' ? '2px solid #3b82f6' : 'none',
-              color: activeTab === 'receipts' ? '#3b82f6' : '#6b7280',
-              fontWeight: '600',
+        {/* Hızlı Erişim Kartları */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+          <div 
+            onClick={() => navigate('/upload')}
+            style={{ 
+              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              borderRadius: '16px',
+              padding: '20px',
               cursor: 'pointer',
-              marginBottom: '-2px'
+              transition: 'transform 0.2s',
+              boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
             }}
           >
-            Fişler ({receipts.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('zreports')}
-            style={{
-              padding: '12px 16px',
-              border: 'none',
-              background: 'transparent',
-              borderBottom: activeTab === 'zreports' ? '2px solid #3b82f6' : 'none',
-              color: activeTab === 'zreports' ? '#3b82f6' : '#6b7280',
-              fontWeight: '600',
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>📷</div>
+            <p style={{ color: 'white', fontSize: '15px', fontWeight: '600', margin: 0 }}>Fiş Yükle</p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', margin: '4px 0 0' }}>Yeni fiş ekle</p>
+          </div>
+
+          <div 
+            onClick={() => navigate('/z-rapor-upload')}
+            style={{ 
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+              borderRadius: '16px',
+              padding: '20px',
               cursor: 'pointer',
-              marginBottom: '-2px'
+              transition: 'transform 0.2s',
+              boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)'
             }}
           >
-            Z Raporları ({zReports.length})
-          </button>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>📊</div>
+            <p style={{ color: 'white', fontSize: '15px', fontWeight: '600', margin: 0 }}>Z Raporu</p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px', margin: '4px 0 0' }}>Rapor yükle</p>
+          </div>
         </div>
 
-        {/* Upload */}
+        {/* Son Fişler */}
         <div style={{ marginBottom: '24px' }}>
-          <label style={{
-            background: '#3b82f6',
-            color: 'white',
-            padding: '12px 24px',
-            borderRadius: '8px',
-            cursor: uploading ? 'not-allowed' : 'pointer',
-            display: 'inline-block',
-            fontWeight: '600',
-            opacity: uploading ? 0.6 : 1
-          }}>
-            {uploading ? '⏳ Yükleniyor...' : `📸 ${activeTab === 'zreports' ? 'Z Raporu' : 'Fiş'} Yükle`}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleUpload}
-              disabled={uploading}
-              style={{ display: 'none' }}
-            />
-          </label>
-        </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: 0 }}>
+              Son Fişler
+            </h2>
+            <button 
+              onClick={() => navigate('/receipts')}
+              style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                color: '#3b82f6', 
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Tümünü Gör →
+            </button>
+          </div>
 
-        {/* Content */}
-        {activeTab === 'receipts' ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-            {receipts.length === 0 ? (
-              <div style={{ gridColumn: '1 / -1', background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '48px', textAlign: 'center' }}>
-                <div style={{ fontSize: '64px', marginBottom: '16px' }}>📭</div>
-                <p style={{ color: '#6b7280' }}>Henüz fiş yüklemediniz.</p>
-              </div>
-            ) : (
-              receipts.map((receipt) => (
-                <div key={receipt.id} style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '16px', transition: 'box-shadow 0.3s' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '600', fontSize: '16px', color: '#111827', marginBottom: '4px' }}>
+          {receipts.length === 0 ? (
+            <div style={{ 
+              background: 'white', 
+              borderRadius: '16px', 
+              padding: '40px 20px', 
+              textAlign: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>📭</div>
+              <p style={{ color: '#6b7280', margin: 0 }}>Henüz fiş eklenmedi</p>
+              <button 
+                onClick={() => navigate('/upload')}
+                style={{
+                  marginTop: '16px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                İlk Fişini Ekle
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {receipts.slice(0, 5).map((receipt) => {
+                const catColor = getCategoryColor(receipt.category);
+                return (
+                  <div 
+                    key={receipt.id} 
+                    style={{ 
+                      background: 'white', 
+                      borderRadius: '16px', 
+                      padding: '16px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px'
+                    }}
+                  >
+                    {/* Kategori İkonu */}
+                    <div style={{ 
+                      width: '48px', 
+                      height: '48px', 
+                      background: catColor.bg,
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '22px',
+                      flexShrink: 0
+                    }}>
+                      {receipt.category === 'Market' ? '🛒' :
+                       receipt.category === 'Akaryakıt' ? '⛽' :
+                       receipt.category === 'Yemek' ? '🍽️' :
+                       receipt.category === 'Ulaşım' ? '🚗' :
+                       receipt.category === 'Sağlık' ? '💊' :
+                       receipt.category === 'Giyim' ? '👕' :
+                       receipt.category === 'Elektronik' ? '📱' : '📄'}
+                    </div>
+
+                    {/* Bilgiler */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ 
+                        fontSize: '15px', 
+                        fontWeight: '600', 
+                        color: '#111827', 
+                        margin: 0,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
                         {receipt.company_name || 'Firma Adı Yok'}
-                      </div>
-                      <div style={{ fontSize: '14px', color: '#6b7280' }}>
+                      </p>
+                      <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0' }}>
                         {receipt.date ? new Date(receipt.date).toLocaleDateString('tr-TR') : '-'}
-                      </div>
+                        {receipt.category && (
+                          <span style={{ 
+                            marginLeft: '8px',
+                            background: catColor.bg,
+                            color: catColor.text,
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: '600'
+                          }}>
+                            {receipt.category}
+                          </span>
+                        )}
+                      </p>
                     </div>
-                    <button
-                      onClick={() => handleDelete(receipt.id)}
-                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '20px' }}
-                    >
-                      🗑️
-                    </button>
-                  </div>
 
-                  {receipt.category && (
-                    <div style={{ display: 'inline-block', background: '#dbeafe', color: '#1e40af', fontSize: '12px', padding: '4px 8px', borderRadius: '6px', marginBottom: '12px' }}>
-                      {receipt.category}
-                    </div>
-                  )}
-
-                  <div style={{ fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6b7280' }}>Toplam:</span>
-                      <span style={{ fontWeight: '600' }}>₺{parseFloat(receipt.total || 0).toFixed(2)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6b7280' }}>KDV:</span>
-                      <span style={{ color: '#8b5cf6', fontWeight: '600' }}>₺{parseFloat(receipt.vat || 0).toFixed(2)}</span>
-                    </div>
-                  </div>
-
-                  {receipt.image_path && (
-                    <img
-                      src={`http://localhost:5001/${receipt.image_path}`}
-                      alt="Fiş"
-                      style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '8px', marginTop: '12px', cursor: 'pointer' }}
-                      onClick={() => window.open(`http://localhost:5001/${receipt.image_path}`, '_blank')}
-                    />
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-            {zReports.length === 0 ? (
-              <div style={{ gridColumn: '1 / -1', background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '48px', textAlign: 'center' }}>
-                <div style={{ fontSize: '64px', marginBottom: '16px' }}>📊</div>
-                <p style={{ color: '#6b7280' }}>Henüz Z Raporu yüklemediniz.</p>
-              </div>
-            ) : (
-              zReports.map((report) => (
-                <div key={report.id} style={{ background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', padding: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <div>
-                      <div style={{ fontWeight: '600', fontSize: '16px', color: '#111827' }}>Z Raporu</div>
-                      <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                        {report.report_date ? new Date(report.report_date).toLocaleDateString('tr-TR') : '-'}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>Fiş Sayısı</div>
-                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#3b82f6' }}>{report.receipt_count || 0}</div>
+                    {/* Tutar */}
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <p style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: 0 }}>
+                        {formatMoney(receipt.total)} ₺
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#8b5cf6', margin: '2px 0 0' }}>
+                        KDV: {formatMoney(receipt.vat)} ₺
+                      </p>
                     </div>
                   </div>
-
-                  <div style={{ fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid #e5e7eb', paddingTop: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6b7280' }}>Toplam Satış:</span>
-                      <span style={{ fontWeight: '600' }}>₺{parseFloat(report.total_sales || 0).toFixed(2)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6b7280' }}>KDV:</span>
-                      <span style={{ color: '#8b5cf6', fontWeight: '600' }}>₺{parseFloat(report.total_vat || 0).toFixed(2)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e5e7eb', paddingTop: '8px' }}>
-                      <span style={{ color: '#6b7280' }}>💵 Nakit:</span>
-                      <span>₺{parseFloat(report.cash_amount || 0).toFixed(2)}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#6b7280' }}>💳 Kart:</span>
-                      <span>₺{parseFloat(report.credit_card_amount || 0).toFixed(2)}</span>
-                    </div>
-                  </div>
-
-                  {report.image_path && (
-                    <img
-                      src={`http://localhost:5001/${report.image_path}`}
-                      alt="Z Raporu"
-                      style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '8px', marginTop: '12px', cursor: 'pointer' }}
-                      onClick={() => window.open(`http://localhost:5001/${report.image_path}`, '_blank')}
-                    />
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       <style>{`
