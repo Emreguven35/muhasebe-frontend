@@ -333,7 +333,8 @@ const loadZRaporlar = async () => {
                               onMouseEnter={(e) => e.currentTarget.style.background = '#e5e7eb'}
                               onMouseLeave={(e) => e.currentTarget.style.background = index % 2 === 0 ? 'white' : '#f9fafb'}
                             >
-                              <td style={cellStyle}>{receipt.date || '-'}</td>
+                              
+<td style={cellStyle}>{receipt.date ? new Date(receipt.date).toLocaleDateString('tr-TR') : '-'}</td>
                               <td style={cellStyle}>{receipt.receipt_number || '-'}</td>
                               <td style={cellStyle}>{receipt.company_name || '-'}</td>
                               <td style={cellStyle}>
