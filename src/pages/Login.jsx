@@ -25,7 +25,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? '/login' : '/register';
+      const endpoint = isLogin ? '/api/login' : '/api/register';
       const payload = isLogin 
         ? { email: formData.email, password: formData.password }
         : formData;
