@@ -74,7 +74,6 @@ function Upload() {
           firmaUnvani: receipt.company_name,
           tarih: receipt.date,
           fisNo: receipt.receipt_number,
-          giderCinsi: receipt.category,
           toplamTutar: receipt.total,
           kdv1: receipt.vat1,
           kdv10: receipt.vat10,
@@ -330,7 +329,6 @@ function Upload() {
             <p><strong>Firma:</strong> {result.firmaUnvani || '-'}</p>
             <p><strong>Tarih:</strong> {result.tarih ? new Date(result.tarih).toLocaleDateString('tr-TR') : '-'}</p>
             <p><strong>Fiş No:</strong> {result.fisNo || '-'}</p>
-            <p><strong>Kategori:</strong> {result.giderCinsi || '-'}</p>
             <p><strong>Toplam:</strong> {result.toplamTutar || '0.00'} ₺</p>
             
             {/* KDV'ler ayrı ayrı */}

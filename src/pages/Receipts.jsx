@@ -57,7 +57,6 @@ const loadZRaporlar = async () => {
       company_name: receipt.company_name || '',
       date: receipt.date || '',
       receipt_number: receipt.receipt_number || '',
-      category: receipt.category || '',
       total: receipt.total || '',
       vat1: receipt.vat1 || '',
       vat10: receipt.vat10 || '',
@@ -256,7 +255,6 @@ const loadZRaporlar = async () => {
                           <th style={headerStyle}>Tarih</th>
                           <th style={headerStyle}>Fiş No</th>
                           <th style={headerStyle}>Firma</th>
-                          <th style={headerStyle}>Kategori</th>
                           <th style={headerStyle}>Toplam</th>
                           <th style={{...headerStyle, background: '#059669'}}>KDV %1</th>
                           <th style={{...headerStyle, background: '#0891b2'}}>KDV %10</th>
@@ -290,14 +288,6 @@ const loadZRaporlar = async () => {
                                   type="text"
                                   value={editForm.company_name}
                                   onChange={(e) => setEditForm({...editForm, company_name: e.target.value})}
-                                  style={inputStyle}
-                                />
-                              </td>
-                              <td style={cellStyle}>
-                                <input
-                                  type="text"
-                                  value={editForm.category}
-                                  onChange={(e) => setEditForm({...editForm, category: e.target.value})}
                                   style={inputStyle}
                                 />
                               </td>
@@ -368,17 +358,6 @@ const loadZRaporlar = async () => {
 <td style={cellStyle}>{receipt.date ? new Date(receipt.date).toLocaleDateString('tr-TR') : '-'}</td>
                               <td style={cellStyle}>{receipt.receipt_number || '-'}</td>
                               <td style={cellStyle}>{receipt.company_name || '-'}</td>
-                              <td style={cellStyle}>
-                                <span style={{
-                                  background: getGiderColor(receipt.category),
-                                  padding: '4px 12px',
-                                  borderRadius: '12px',
-                                  fontSize: '12px',
-                                  fontWeight: '600'
-                                }}>
-                                  {receipt.category || 'Diğer'}
-                                </span>
-                              </td>
                               <td style={{...cellStyle, textAlign: 'right', fontWeight: '700', color: 'var(--primary)', fontFamily: 'monospace'}}>
                                 {parseFloat(receipt.total || 0).toFixed(2)} ₺
                               </td>
@@ -416,7 +395,7 @@ const loadZRaporlar = async () => {
                           fontWeight: '700',
                           borderTop: '2px solid var(--primary)'
                         }}>
-                          <td style={{...cellStyle, fontWeight: '700'}} colSpan="4">
+                          <td style={{...cellStyle, fontWeight: '700'}} colSpan="3">
                             TOPLAM ({totals.count} Fiş)
                           </td>
                           <td style={{...cellStyle, textAlign: 'right', fontSize: '16px', color: 'var(--success)', fontFamily: 'monospace'}}>
@@ -630,20 +609,6 @@ const cancelButtonStyle = {
   cursor: 'pointer',
   fontSize: '12px',
   fontWeight: '600'
-};
-
-const getGiderColor = (cinsi) => {
-  const colors = {
-    'Yemek': '#fff3e0',
-    'Ulaşım': '#e8f5e9',
-    'Market': '#f3e5f5',
-    'Eğlence': '#e3f2fd',
-    'Sağlık': '#ffebee',
-    'Giyim': '#f8bbd0',
-    'Elektronik': '#e1f5fe',
-    'Kırtasiye': '#fff9c4'
-  };
-  return colors[cinsi] || '#f3f4f6';
 };
 
 export default Receipts;

@@ -80,21 +80,6 @@ function Dashboard() {
     navigate('/login');
   };
 
-  // Kategoriye göre renk
-  const getCategoryColor = (category) => {
-    const colors = {
-      'Market': { bg: '#dcfce7', text: '#166534' },
-      'Akaryakıt': { bg: '#fee2e2', text: '#991b1b' },
-      'Yemek': { bg: '#fff7ed', text: '#9a3412' },
-      'Ulaşım': { bg: '#e0e7ff', text: '#3730a3' },
-      'Sağlık': { bg: '#fce7f3', text: '#9d174d' },
-      'Giyim': { bg: '#f3e8ff', text: '#7c3aed' },
-      'Elektronik': { bg: '#e0f2fe', text: '#0369a1' },
-      'Diğer': { bg: '#f3f4f6', text: '#4b5563' }
-    };
-    return colors[category] || colors['Diğer'];
-  };
-
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -318,7 +303,6 @@ function Dashboard() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {receipts.slice(0, 5).map((receipt) => {
-                const catColor = getCategoryColor(receipt.category);
                 return (
                   <div 
                     key={receipt.id} 
@@ -332,11 +316,11 @@ function Dashboard() {
                       gap: '14px'
                     }}
                   >
-                    {/* Kategori İkonu */}
+                    {/* Fiş İkonu */}
                     <div style={{ 
                       width: '48px', 
                       height: '48px', 
-                      background: catColor.bg,
+                      background: '#f0fdf4',
                       borderRadius: '12px',
                       display: 'flex',
                       alignItems: 'center',
@@ -344,13 +328,7 @@ function Dashboard() {
                       fontSize: '22px',
                       flexShrink: 0
                     }}>
-                      {receipt.category === 'Market' ? '🛒' :
-                       receipt.category === 'Akaryakıt' ? '⛽' :
-                       receipt.category === 'Yemek' ? '🍽️' :
-                       receipt.category === 'Ulaşım' ? '🚗' :
-                       receipt.category === 'Sağlık' ? '💊' :
-                       receipt.category === 'Giyim' ? '👕' :
-                       receipt.category === 'Elektronik' ? '📱' : '📄'}
+                      🧾
                     </div>
 
                     {/* Bilgiler */}
@@ -368,19 +346,6 @@ function Dashboard() {
                       </p>
                       <p style={{ fontSize: '13px', color: '#6b7280', margin: '2px 0 0' }}>
                         {receipt.date ? new Date(receipt.date).toLocaleDateString('tr-TR') : '-'}
-                        {receipt.category && (
-                          <span style={{ 
-                            marginLeft: '8px',
-                            background: catColor.bg,
-                            color: catColor.text,
-                            padding: '2px 8px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: '600'
-                          }}>
-                            {receipt.category}
-                          </span>
-                        )}
                       </p>
                     </div>
 
