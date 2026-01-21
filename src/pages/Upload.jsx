@@ -328,7 +328,7 @@ function Upload() {
           
           <div style={{ fontSize: '14px', lineHeight: '1.8' }}>
             <p><strong>Firma:</strong> {result.firmaUnvani || '-'}</p>
-            <p><strong>Tarih:</strong> {result.tarih || '-'}</p>
+            <p><strong>Tarih:</strong> {result.tarih ? new Date(result.tarih).toLocaleDateString('tr-TR') : '-'}</p>
             <p><strong>Fiş No:</strong> {result.fisNo || '-'}</p>
             <p><strong>Kategori:</strong> {result.giderCinsi || '-'}</p>
             <p><strong>Toplam:</strong> {result.toplamTutar || '0.00'} ₺</p>
