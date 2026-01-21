@@ -76,7 +76,9 @@ function Upload() {
           fisNo: receipt.receipt_number,
           giderCinsi: receipt.category,
           toplamTutar: receipt.total,
-          kdv: receipt.vat
+          kdv1: receipt.vat1,
+          kdv10: receipt.vat10,
+          kdv20: receipt.vat20
         });
         
         const totalAmount = parseFloat(receipt.total || 0);
@@ -330,7 +332,23 @@ function Upload() {
             <p><strong>Fiş No:</strong> {result.fisNo || '-'}</p>
             <p><strong>Kategori:</strong> {result.giderCinsi || '-'}</p>
             <p><strong>Toplam:</strong> {result.toplamTutar || '0.00'} ₺</p>
-            <p><strong>KDV:</strong> {result.kdv || '0.00'} ₺</p>
+            
+            {/* KDV'ler ayrı ayrı */}
+            <div style={{ 
+              marginTop: '12px', 
+              padding: '12px', 
+              background: '#f0fdf4', 
+              borderRadius: '8px',
+              border: '1px solid #bbf7d0'
+            }}>
+              <p style={{ fontWeight: '600', marginBottom: '8px', color: '#166534' }}>📊 KDV Detayları:</p>
+              <p><strong>KDV %1:</strong> {parseFloat(result.kdv1 || 0).toFixed(2)} ₺</p>
+              <p><strong>KDV %10:</strong> {parseFloat(result.kdv10 || 0).toFixed(2)} ₺</p>
+              <p><strong>KDV %20:</strong> {parseFloat(result.kdv20 || 0).toFixed(2)} ₺</p>
+              <p style={{ marginTop: '8px', fontWeight: '600', color: '#166534' }}>
+                <strong>Toplam KDV:</strong> {(parseFloat(result.kdv1 || 0) + parseFloat(result.kdv10 || 0) + parseFloat(result.kdv20 || 0)).toFixed(2)} ₺
+              </p>
+            </div>
           </div>
 
           {(!result.toplamTutar || parseFloat(result.toplamTutar) === 0) && (

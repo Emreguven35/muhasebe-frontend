@@ -59,7 +59,9 @@ const loadZRaporlar = async () => {
       receipt_number: receipt.receipt_number || '',
       category: receipt.category || '',
       total: receipt.total || '',
-      vat: receipt.vat || ''
+      vat1: receipt.vat1 || '',
+      vat10: receipt.vat10 || '',
+      vat20: receipt.vat20 || ''
     });
   };
 
@@ -134,7 +136,9 @@ const loadZRaporlar = async () => {
   const totals = {
     count: receipts.length,
     totalAmount: receipts.reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0),
-    totalVat: receipts.reduce((sum, r) => sum + (parseFloat(r.vat) || 0), 0)
+    totalVat1: receipts.reduce((sum, r) => sum + (parseFloat(r.vat1) || 0), 0),
+    totalVat10: receipts.reduce((sum, r) => sum + (parseFloat(r.vat10) || 0), 0),
+    totalVat20: receipts.reduce((sum, r) => sum + (parseFloat(r.vat20) || 0), 0)
   };
 
   const zTotals = {
@@ -245,7 +249,7 @@ const loadZRaporlar = async () => {
                     <table style={{ 
                       width: '100%',
                       borderCollapse: 'collapse',
-                      minWidth: '900px'
+                      minWidth: '1100px'
                     }}>
                       <thead>
                         <tr style={{ background: 'var(--primary)' }}>
@@ -254,7 +258,9 @@ const loadZRaporlar = async () => {
                           <th style={headerStyle}>Firma</th>
                           <th style={headerStyle}>Kategori</th>
                           <th style={headerStyle}>Toplam</th>
-                          <th style={headerStyle}>KDV</th>
+                          <th style={{...headerStyle, background: '#059669'}}>KDV %1</th>
+                          <th style={{...headerStyle, background: '#0891b2'}}>KDV %10</th>
+                          <th style={{...headerStyle, background: '#7c3aed'}}>KDV %20</th>
                           <th style={{...headerStyle, textAlign: 'center'}}>İşlemler</th>
                         </tr>
                       </thead>
@@ -308,9 +314,27 @@ const loadZRaporlar = async () => {
                                 <input
                                   type="number"
                                   step="0.01"
-                                  value={editForm.vat}
-                                  onChange={(e) => setEditForm({...editForm, vat: e.target.value})}
-                                  style={inputStyle}
+                                  value={editForm.vat1}
+                                  onChange={(e) => setEditForm({...editForm, vat1: e.target.value})}
+                                  style={{...inputStyle, width: '70px'}}
+                                />
+                              </td>
+                              <td style={cellStyle}>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={editForm.vat10}
+                                  onChange={(e) => setEditForm({...editForm, vat10: e.target.value})}
+                                  style={{...inputStyle, width: '70px'}}
+                                />
+                              </td>
+                              <td style={cellStyle}>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={editForm.vat20}
+                                  onChange={(e) => setEditForm({...editForm, vat20: e.target.value})}
+                                  style={{...inputStyle, width: '70px'}}
                                 />
                               </td>
                               <td style={{...cellStyle, textAlign: 'center'}}>
@@ -358,8 +382,14 @@ const loadZRaporlar = async () => {
                               <td style={{...cellStyle, textAlign: 'right', fontWeight: '700', color: 'var(--primary)', fontFamily: 'monospace'}}>
                                 {parseFloat(receipt.total || 0).toFixed(2)} ₺
                               </td>
-                              <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px'}}>
-                                {parseFloat(receipt.vat || 0).toFixed(2)} ₺
+                              <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: '#059669'}}>
+                                {parseFloat(receipt.vat1 || 0).toFixed(2)} ₺
+                              </td>
+                              <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: '#0891b2'}}>
+                                {parseFloat(receipt.vat10 || 0).toFixed(2)} ₺
+                              </td>
+                              <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: '#7c3aed'}}>
+                                {parseFloat(receipt.vat20 || 0).toFixed(2)} ₺
                               </td>
                               <td style={{...cellStyle, textAlign: 'center'}}>
                                 <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
@@ -392,8 +422,14 @@ const loadZRaporlar = async () => {
                           <td style={{...cellStyle, textAlign: 'right', fontSize: '16px', color: 'var(--success)', fontFamily: 'monospace'}}>
                             {totals.totalAmount.toFixed(2)} ₺
                           </td>
-                          <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: 'var(--primary)'}}>
-                            {totals.totalVat.toFixed(2)} ₺
+                          <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: '#059669', fontWeight: '700'}}>
+                            {totals.totalVat1.toFixed(2)} ₺
+                          </td>
+                          <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: '#0891b2', fontWeight: '700'}}>
+                            {totals.totalVat10.toFixed(2)} ₺
+                          </td>
+                          <td style={{...cellStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', color: '#7c3aed', fontWeight: '700'}}>
+                            {totals.totalVat20.toFixed(2)} ₺
                           </td>
                           <td></td>
                         </tr>
